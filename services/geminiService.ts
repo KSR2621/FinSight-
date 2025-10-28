@@ -1,54 +1,50 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Transaction, GroundingChunk } from '../types';
 
-// Access the API key directly from the environment variable provided by the platform.
-const API_KEY = process.env.API_KEY;
-
-let ai: GoogleGenAI | null = null;
-
-// Initialize the AI client only if the API key is available
-if (API_KEY) {
-  try {
-    ai = new GoogleGenAI({ apiKey: API_KEY });
-  } catch (error) {
-    console.error("Failed to initialize GoogleGenAI:", error);
+/**
+ * Gets the AI client on-demand.
+ * This function is called before every AI-related request to ensure the client
+ * is initialized with the API key, which might not be available at module load time.
+ * @returns An instance of GoogleGenAI
+ * @throws An error if the API_KEY environment variable is not set.
+ */
+const getAiClient = (): GoogleGenAI => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
   }
-} else {
-  console.warn("Gemini API key not found. Set the API_KEY environment variable for AI features.");
-}
-
-const getApiError = () => {
-    return "AI service not configured. Please ensure the API_KEY environment variable is set.";
-}
+  return new GoogleGenAI({ apiKey });
+};
 
 export const getFinancialNews = async (): Promise<{ summary: string; sources: GroundingChunk[] }> => {
-    if (!ai) {
+  const ai = getAiClient();
+  
+  try {
+    const prompt = "What are the top 5 latest financial news headlines? Provide a brief summary of each.";
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+
+    const summary = response.text;
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+    return { summary, sources };
+  } catch (error) {
+    console.error("Error fetching financial news:", error);
+    if (error instanceof Error && error.message.includes("API_KEY")) {
         throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
     }
-  
-    try {
-      const prompt = "What are the top 5 latest financial news headlines? Provide a brief summary of each.";
-  
-      const response: GenerateContentResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-        },
-      });
-  
-      const summary = response.text;
-      const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-  
-      return { summary, sources };
-    } catch (error) {
-      console.error("Error fetching financial news:", error);
-      throw new Error("Sorry, I couldn't fetch the latest news at this moment.");
-    }
-  };
+    throw new Error("Sorry, I couldn't fetch the latest news at this moment.");
+  }
+};
 
 export const generateFinancialSummary = async (transactions: Transaction[]): Promise<string> => {
-  if (!ai) return getApiError();
+  const ai = getAiClient();
   
   try {
     const prompt = `
@@ -71,12 +67,15 @@ export const generateFinancialSummary = async (transactions: Transaction[]): Pro
     return response.text;
   } catch (error) {
     console.error("Error generating financial summary:", error);
+    if (error instanceof Error && error.message.includes("API_KEY")) {
+        return "AI service not configured. Please ensure the API_KEY environment variable is set.";
+    }
     return "Sorry, I couldn't generate a summary at this moment. Please check the console for errors.";
   }
 };
 
 export const generateContentAnalysis = async (content: string): Promise<string> => {
-    if (!ai) return getApiError();
+    const ai = getAiClient();
     if (!content.trim()) return "Please provide some content to analyze.";
 
     try {
@@ -100,13 +99,16 @@ export const generateContentAnalysis = async (content: string): Promise<string> 
       return response.text;
     } catch (error) {
       console.error("Error generating content analysis:", error);
+       if (error instanceof Error && error.message.includes("API_KEY")) {
+        return "AI service not configured. Please ensure the API_KEY environment variable is set.";
+    }
       return "Sorry, I couldn't analyze the content at this moment. Please check the console for errors.";
     }
   };
 
 
-export const startChat = (transactions: Transaction[]): Chat | null => {
-    if (!ai) return null;
+export const startChat = (transactions: Transaction[]): Chat => {
+    const ai = getAiClient();
 
     const history = [
         {
@@ -131,8 +133,8 @@ export const startChat = (transactions: Transaction[]): Chat | null => {
     return chat;
 };
 
-export const startNewsChat = (newsSummary: string): Chat | null => {
-    if (!ai) return null;
+export const startNewsChat = (newsSummary: string): Chat => {
+    const ai = getAiClient();
 
     const history = [
         {
