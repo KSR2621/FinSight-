@@ -37,3 +37,12 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: '$',
   INR: '₹',
 };
+
+export interface GroundingChunkSource {
+  uri: string;
+  title: string;
+}
+
+export interface GroundingChunk {
+  web: GroundingChunkSource;
+}

@@ -1,6 +1,6 @@
 
-import { GoogleGenAI, Chat } from "@google/genai";
-import { Transaction } from '../types';
+import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import { Transaction, GroundingChunk } from '../types';
 
 // Safely access the API key to prevent 'process is not defined' error in browsers
 const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
@@ -21,6 +21,32 @@ if (API_KEY) {
 const getApiError = () => {
     return "AI service not configured. Please ensure the API_KEY environment variable is set.";
 }
+
+export const getFinancialNews = async (): Promise<{ summary: string; sources: GroundingChunk[] }> => {
+    if (!ai) {
+        throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
+    }
+  
+    try {
+      const prompt = "What are the top 5 latest financial news headlines? Provide a brief summary of each.";
+  
+      const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+        },
+      });
+  
+      const summary = response.text;
+      const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  
+      return { summary, sources };
+    } catch (error) {
+      console.error("Error fetching financial news:", error);
+      throw new Error("Sorry, I couldn't fetch the latest news at this moment.");
+    }
+  };
 
 export const generateFinancialSummary = async (transactions: Transaction[]): Promise<string> => {
   if (!ai) return getApiError();

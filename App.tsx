@@ -6,6 +6,7 @@ import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
 import AiChatbot from './components/AiChatbot';
 import AiContentAnalyzer from './components/AiContentAnalyzer';
+import News from './components/News';
 
 interface AppProps {
   onLogout: () => void;
@@ -96,6 +97,8 @@ const App: React.FC<AppProps> = ({ onLogout }) => {
         <Dashboard transactions={transactions} currency={currency} />
         
         <AiContentAnalyzer />
+
+        <News />
 
         <div className="mt-8">
           <TransactionList
