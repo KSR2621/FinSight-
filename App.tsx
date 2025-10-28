@@ -12,16 +12,7 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ onLogout }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    // Load transactions from localStorage on initial render
-    try {
-      const savedTransactions = localStorage.getItem('transactions');
-      return savedTransactions ? JSON.parse(savedTransactions) : [];
-    } catch (error) { {
-      console.error("Could not parse transactions from localStorage", error);
-      return [];
-    }
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
