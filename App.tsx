@@ -89,6 +89,7 @@ const App: React.FC<AppProps> = ({ onLogout }) => {
         onLogout={onLogout}
         currency={currency}
         onCurrencyChange={setCurrency}
+        onAddTransaction={openAddModal}
       />
 
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -99,7 +100,6 @@ const App: React.FC<AppProps> = ({ onLogout }) => {
         <div className="mt-8">
           <TransactionList
             transactions={transactions}
-            onAddTransaction={openAddModal}
             onEditTransaction={openEditModal}
             onDeleteTransaction={handleDeleteTransaction}
             currency={currency}

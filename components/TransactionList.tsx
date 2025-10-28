@@ -1,11 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
 import { Transaction, Category, TransactionType, Currency, CURRENCY_SYMBOLS } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon } from './icons';
+import { PencilIcon, TrashIcon, ArrowDownTrayIcon } from './icons';
 
 interface TransactionListProps {
   transactions: Transaction[];
-  onAddTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   currency: Currency;
@@ -13,7 +11,6 @@ interface TransactionListProps {
 
 const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
-  onAddTransaction,
   onEditTransaction,
   onDeleteTransaction,
   currency,
@@ -35,6 +32,43 @@ const TransactionList: React.FC<TransactionListProps> = ({
   }, [transactions]);
 
   const currencySymbol = CURRENCY_SYMBOLS[currency];
+
+  const handleDownloadCSV = () => {
+    if (transactions.length === 0) {
+      alert("No transactions to download.");
+      return;
+    }
+
+    const headers = ["ID", "Description", "Amount", "Type", "Category", "Date"];
+    const csvRows = [headers.join(',')];
+
+    // Use the full transactions list for download, not the filtered one
+    for (const t of transactions) {
+      const values = [
+        t.id,
+        `"${t.description.replace(/"/g, '""')}"`, // Handle quotes in description
+        t.amount,
+        t.type,
+        t.category,
+        t.date
+      ];
+      csvRows.push(values.join(','));
+    }
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "finsight-transactions.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -60,11 +94,11 @@ const TransactionList: React.FC<TransactionListProps> = ({
             </optgroup>
           </select>
           <button
-            onClick={onAddTransaction}
-            className="flex items-center justify-center w-10 h-10 bg-primary text-white rounded-md hover:bg-indigo-700 transition-colors flex-shrink-0"
-            aria-label="Add new transaction"
+            onClick={handleDownloadCSV}
+            className="flex items-center justify-center w-10 h-10 bg-secondary text-white rounded-md hover:bg-green-700 transition-colors flex-shrink-0"
+            aria-label="Download transactions as CSV"
           >
-            <PlusIcon className="h-6 w-6" />
+            <ArrowDownTrayIcon className="h-5 w-5" />
           </button>
         </div>
       </div>

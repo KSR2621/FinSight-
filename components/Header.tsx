@@ -1,5 +1,5 @@
 import React from 'react';
-import { SunIcon, MoonIcon, ChartPieIcon, ArrowRightOnRectangleIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, ArrowRightOnRectangleIcon, PlusIcon } from './icons';
 import { Currency } from '../types';
 
 interface HeaderProps {
@@ -8,11 +8,12 @@ interface HeaderProps {
   onLogout: () => void;
   currency: Currency;
   onCurrencyChange: (currency: Currency) => void;
+  onAddTransaction: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onLogout, currency, onCurrencyChange }) => {
+const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onLogout, currency, onCurrencyChange, onAddTransaction }) => {
   return (
-    <header className="bg-card dark:bg-gray-800 shadow-md">
+    <header className="bg-card dark:bg-gray-800 shadow-md sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
@@ -31,6 +32,13 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onLogout, c
               <option value="USD">USD ($)</option>
               <option value="INR">INR (₹)</option>
             </select>
+            <button
+              onClick={onAddTransaction}
+              className="flex items-center justify-center w-9 h-9 bg-primary text-white rounded-full hover:bg-indigo-700 transition-colors flex-shrink-0"
+              aria-label="Add new transaction"
+            >
+              <PlusIcon className="h-6 w-6" />
+            </button>
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full text-gray-400 hover:text-text-primary dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
