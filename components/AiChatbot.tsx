@@ -5,7 +5,6 @@ import { Transaction, ChatMessage } from '../types';
 import { startChat } from '../services/geminiService';
 import { Chat } from '@google/genai';
 import { PaperAirplaneIcon, XMarkIcon, ChatBubbleOvalLeftEllipsisIcon, SparklesIcon, MicrophoneIcon } from './icons';
-import ApiKeyModal from './ApiKeyModal';
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -43,46 +42,31 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
   const [micStatus, setMicStatus] = useState<'idle' | 'listening'>('idle');
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const initializeChat = useCallback(() => {
-    try {
-        const chat = startChat(transactions);
-        chatRef.current = chat;
-        setMessages([{
-            role: 'model',
-            text: "Hello! I'm your personal finance assistant. How can I help you analyze your spending or find savings opportunities today?"
-        }]);
-        setIsInitialized(true);
-    } catch (error) {
-        if (error instanceof Error && error.message.includes("AI service not configured")) {
-            // Throw the error to be caught by the caller
-            throw error;
-        }
-        // Handle other initialization errors
-        setMessages([{
-            role: 'model',
-            text: "An unexpected error occurred while starting the chat."
-        }]);
-        setIsInitialized(false);
-        console.error("Chat Initialization Error:", error);
-    }
+    const chat = startChat(transactions);
+    chatRef.current = chat;
+    setMessages([{
+        role: 'model',
+        text: "Hello! I'm your personal finance assistant. How can I help you analyze your spending or find savings opportunities today?"
+    }]);
+    setIsInitialized(true);
   }, [transactions]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isInitialized) {
       try {
         initializeChat();
       } catch (e) {
-        setShowApiKeyModal(true);
+        const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
         setMessages([{
             role: 'model',
-            text: "Please provide an API key to enable the chat assistant."
+            text: `Chat failed to start: ${errorMessage}`
         }]);
         setIsInitialized(false);
       }
     }
-  }, [isOpen, initializeChat]);
+  }, [isOpen, isInitialized, initializeChat]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -119,7 +103,8 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
         }
     } catch (error) {
       console.error("Chat error:", error);
-      const errorMessage: ChatMessage = { role: 'model', text: "Sorry, I'm having trouble connecting. Please try again later." };
+      const errorMessageText = error instanceof Error ? error.message : "Sorry, I'm having trouble connecting. Please try again later.";
+      const errorMessage: ChatMessage = { role: 'model', text: errorMessageText };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -172,22 +157,6 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
 
   return (
     <>
-      {showApiKeyModal && (
-        <ApiKeyModal
-          onClose={() => setShowApiKeyModal(false)}
-          onSave={(key) => {
-            sessionStorage.setItem('gemini_api_key', key);
-            setShowApiKeyModal(false);
-            // Retry initialization
-            try {
-              initializeChat();
-            } catch (e) {
-              // It might fail again if the key is invalid, so we keep the modal flow
-              setShowApiKeyModal(true);
-            }
-          }}
-        />
-      )}
       <div className={`fixed bottom-0 right-0 m-6 transition-transform duration-300 ${isOpen ? 'translate-x-full' : 'translate-x-0'}`}>
         <button
           onClick={() => setIsOpen(true)}

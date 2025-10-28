@@ -3,7 +3,6 @@ import { getFinancialNews, startNewsChat } from '../services/geminiService';
 import { NewspaperIcon, RefreshIcon, MicrophoneIcon, PaperAirplaneIcon } from './icons';
 import { GroundingChunk, ChatMessage } from '../types';
 import { Chat } from '@google/genai';
-import ApiKeyModal from './ApiKeyModal';
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -40,7 +39,6 @@ const News: React.FC = () => {
   const [micStatus, setMicStatus] = useState<'idle' | 'listening'>('idle');
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -69,13 +67,12 @@ const News: React.FC = () => {
       }
 
     } catch (err: any) {
-      if (err instanceof Error && err.message.includes("AI service not configured")) {
-        setShowApiKeyModal(true);
-        setError("Please provide your API key to use AI features.");
-      } else {
-        setError(err.message || 'Failed to fetch news. Please try again.');
-      }
-      console.error(err);
+        if (err instanceof Error) {
+            setError(err.message);
+        } else {
+            setError('Failed to fetch news. An unknown error occurred.');
+        }
+        console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +106,8 @@ const News: React.FC = () => {
         }
     } catch (error) {
       console.error("News chat error:", error);
-      const errorMessage: ChatMessage = { role: 'model', text: "Sorry, I encountered an error. Please try again." };
+      const errorMessageText = error instanceof Error ? error.message : "Sorry, I encountered an error. Please try again.";
+      const errorMessage: ChatMessage = { role: 'model', text: errorMessageText };
       setChatMessages(prev => {
           const newMessages = [...prev];
           if(newMessages.length > 0 && newMessages[newMessages.length-1].text === ''){
@@ -169,16 +167,6 @@ const News: React.FC = () => {
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md mt-8">
-       {showApiKeyModal && (
-        <ApiKeyModal
-          onClose={() => setShowApiKeyModal(false)}
-          onSave={(key) => {
-            sessionStorage.setItem('gemini_api_key', key);
-            setShowApiKeyModal(false);
-            handleFetchNews(); // Retry the action
-          }}
-        />
-      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
         <div className="flex items-center">
           <NewspaperIcon className="h-6 w-6 text-primary dark:text-primary-dark mr-2" />
@@ -201,7 +189,7 @@ const News: React.FC = () => {
       </div>
 
       <div className="w-full min-h-[10rem] p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 overflow-y-auto">
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
         
         {newsSummary ? (
             <>

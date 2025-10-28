@@ -1,27 +1,17 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Transaction, GroundingChunk } from '../types';
 
-const getApiKey = (): string | null => {
-    // Prefer the environment variable if it's set (for secure development environments)
-    if (process.env.API_KEY) {
-        return process.env.API_KEY;
-    }
-    // Fall back to session storage for user-provided keys on static deployments
-    return sessionStorage.getItem('gemini_api_key');
-};
-
-
 /**
  * Gets the AI client on-demand.
- * This function is called before every AI-related request to ensure the client
- * is initialized with the API key, which might not be available at module load time.
+ * This function is called before every AI-related request. It relies on the API key
+ * being set as an environment variable (`process.env.API_KEY`).
  * @returns An instance of GoogleGenAI
  * @throws An error if the API_KEY environment variable is not set.
  */
 const getAiClient = (): GoogleGenAI => {
-  const apiKey = getApiKey();
+  const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
+    throw new Error("API Key not configured. Please create a .env file and add your API_KEY to it.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -29,35 +19,26 @@ const getAiClient = (): GoogleGenAI => {
 export const getFinancialNews = async (): Promise<{ summary: string; sources: GroundingChunk[] }> => {
   const ai = getAiClient();
   
-  try {
-    const prompt = "What are the top 5 latest financial news headlines? Provide a brief summary of each.";
+  const prompt = "What are the top 5 latest financial news headlines? Provide a brief summary of each.";
 
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
-    });
+  const response: GenerateContentResponse = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
 
-    const summary = response.text;
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  const summary = response.text;
+  const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
-    return { summary, sources };
-  } catch (error) {
-    console.error("Error fetching financial news:", error);
-    if (error instanceof Error && error.message.includes("API_KEY")) {
-        throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
-    }
-    throw new Error("Sorry, I couldn't fetch the latest news at this moment.");
-  }
+  return { summary, sources };
 };
 
 export const generateFinancialSummary = async (transactions: Transaction[]): Promise<string> => {
   const ai = getAiClient();
   
-  try {
-    const prompt = `
+  const prompt = `
       Analyze the following financial transactions and provide a concise, insightful summary.
       - Highlight the biggest spending categories.
       - Mention the total income vs. total expenses.
@@ -69,51 +50,36 @@ export const generateFinancialSummary = async (transactions: Transaction[]): Pro
       ${JSON.stringify(transactions.slice(0, 50), null, 2)}
     `;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt
-    });
-    
-    return response.text;
-  } catch (error) {
-    console.error("Error generating financial summary:", error);
-    if (error instanceof Error && error.message.includes("API_KEY")) {
-        return "AI service not configured. Please ensure the API_KEY environment variable is set.";
-    }
-    return "Sorry, I couldn't generate a summary at this moment. Please check the console for errors.";
-  }
+  const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt
+  });
+  
+  return response.text;
 };
 
 export const generateContentAnalysis = async (content: string): Promise<string> => {
     const ai = getAiClient();
     if (!content.trim()) return "Please provide some content to analyze.";
 
-    try {
-      const prompt = `
-        Analyze the following text and provide a concise, insightful summary in markdown format.
-        - Identify the main topics or arguments.
-        - Determine the overall sentiment (e.g., positive, negative, neutral).
-        - Extract any key takeaways or conclusions.
+    const prompt = `
+      Analyze the following text and provide a concise, insightful summary in markdown format.
+      - Identify the main topics or arguments.
+      - Determine the overall sentiment (e.g., positive, negative, neutral).
+      - Extract any key takeaways or conclusions.
   
-        Content to analyze:
-        ---
-        ${content}
-        ---
-      `;
+      Content to analyze:
+      ---
+      ${content}
+      ---
+    `;
   
-      const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt
-      });
-      
-      return response.text;
-    } catch (error) {
-      console.error("Error generating content analysis:", error);
-       if (error instanceof Error && error.message.includes("API_KEY")) {
-        return "AI service not configured. Please ensure the API_KEY environment variable is set.";
-    }
-      return "Sorry, I couldn't analyze the content at this moment. Please check the console for errors.";
-    }
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+    });
+    
+    return response.text;
   };
 
 
