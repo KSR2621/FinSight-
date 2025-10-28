@@ -1,10 +1,8 @@
-
-
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Transaction, GroundingChunk } from '../types';
 
-// Safely access the API key to prevent 'process is not defined' error in browsers
-const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+// Access the API key directly from the environment variable provided by the platform.
+const API_KEY = process.env.API_KEY;
 
 let ai: GoogleGenAI | null = null;
 
