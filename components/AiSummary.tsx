@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { Transaction } from '../types';
 import { generateFinancialSummary } from '../services/geminiService';
 import { SparklesIcon, RefreshIcon } from './icons';
+import ApiKeyModal from './ApiKeyModal';
 
 interface AiSummaryProps {
   transactions: Transaction[];
@@ -12,6 +13,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions }) => {
   const [summary, setSummary] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const handleGenerateSummary = useCallback(async () => {
     setIsLoading(true);
@@ -20,7 +22,12 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions }) => {
       const result = await generateFinancialSummary(transactions);
       setSummary(result);
     } catch (err) {
-      setError('Failed to generate summary. Please try again.');
+      if (err instanceof Error && err.message.includes("AI service not configured")) {
+        setShowApiKeyModal(true);
+        setError("Please provide your API key to generate insights.");
+      } else {
+        setError('Failed to generate summary. Please try again.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -29,6 +36,16 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions }) => {
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={(key) => {
+            sessionStorage.setItem('gemini_api_key', key);
+            setShowApiKeyModal(false);
+            handleGenerateSummary(); // Retry
+          }}
+        />
+      )}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
             <SparklesIcon className="h-6 w-6 text-yellow-400 mr-2" />

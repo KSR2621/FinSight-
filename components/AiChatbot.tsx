@@ -5,6 +5,7 @@ import { Transaction, ChatMessage } from '../types';
 import { startChat } from '../services/geminiService';
 import { Chat } from '@google/genai';
 import { PaperAirplaneIcon, XMarkIcon, ChatBubbleOvalLeftEllipsisIcon, SparklesIcon, MicrophoneIcon } from './icons';
+import ApiKeyModal from './ApiKeyModal';
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -42,35 +43,51 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
   const [micStatus, setMicStatus] = useState<'idle' | 'listening'>('idle');
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const initializeChat = useCallback(() => {
-    const chat = startChat(transactions);
-    if (chat) {
+    try {
+        const chat = startChat(transactions);
         chatRef.current = chat;
         setMessages([{
             role: 'model',
             text: "Hello! I'm your personal finance assistant. How can I help you analyze your spending or find savings opportunities today?"
         }]);
         setIsInitialized(true);
-    } else {
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("AI service not configured")) {
+            // Throw the error to be caught by the caller
+            throw error;
+        }
+        // Handle other initialization errors
         setMessages([{
             role: 'model',
-            text: "The AI chat feature is not available. Please ensure the API_KEY environment variable is configured correctly."
+            text: "An unexpected error occurred while starting the chat."
         }]);
         setIsInitialized(false);
+        console.error("Chat Initialization Error:", error);
     }
   }, [transactions]);
+
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        initializeChat();
+      } catch (e) {
+        setShowApiKeyModal(true);
+        setMessages([{
+            role: 'model',
+            text: "Please provide an API key to enable the chat assistant."
+        }]);
+        setIsInitialized(false);
+      }
+    }
+  }, [isOpen, initializeChat]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     setIsSpeechRecognitionSupported(!!SpeechRecognitionAPI);
   }, []);
-
-  useEffect(() => {
-    if (isOpen) {
-        initializeChat();
-    }
-  }, [isOpen, initializeChat]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -155,6 +172,22 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
 
   return (
     <>
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={(key) => {
+            sessionStorage.setItem('gemini_api_key', key);
+            setShowApiKeyModal(false);
+            // Retry initialization
+            try {
+              initializeChat();
+            } catch (e) {
+              // It might fail again if the key is invalid, so we keep the modal flow
+              setShowApiKeyModal(true);
+            }
+          }}
+        />
+      )}
       <div className={`fixed bottom-0 right-0 m-6 transition-transform duration-300 ${isOpen ? 'translate-x-full' : 'translate-x-0'}`}>
         <button
           onClick={() => setIsOpen(true)}

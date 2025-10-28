@@ -3,6 +3,7 @@ import { getFinancialNews, startNewsChat } from '../services/geminiService';
 import { NewspaperIcon, RefreshIcon, MicrophoneIcon, PaperAirplaneIcon } from './icons';
 import { GroundingChunk, ChatMessage } from '../types';
 import { Chat } from '@google/genai';
+import ApiKeyModal from './ApiKeyModal';
 
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -39,6 +40,7 @@ const News: React.FC = () => {
   const [micStatus, setMicStatus] = useState<'idle' | 'listening'>('idle');
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -67,7 +69,12 @@ const News: React.FC = () => {
       }
 
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch news. Please try again.');
+      if (err instanceof Error && err.message.includes("AI service not configured")) {
+        setShowApiKeyModal(true);
+        setError("Please provide your API key to use AI features.");
+      } else {
+        setError(err.message || 'Failed to fetch news. Please try again.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -162,6 +169,16 @@ const News: React.FC = () => {
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md mt-8">
+       {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={(key) => {
+            sessionStorage.setItem('gemini_api_key', key);
+            setShowApiKeyModal(false);
+            handleFetchNews(); // Retry the action
+          }}
+        />
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
         <div className="flex items-center">
           <NewspaperIcon className="h-6 w-6 text-primary dark:text-primary-dark mr-2" />
@@ -205,7 +222,7 @@ const News: React.FC = () => {
                 )}
             </>
         ) : (
-            !isLoading && <p className="text-text-secondary dark:text-gray-400">Click "Get Latest News" to see an AI-powered summary of what's happening in the financial world.</p>
+            !isLoading && !error && <p className="text-text-secondary dark:text-gray-400">Click "Get Latest News" to see an AI-powered summary of what's happening in the financial world.</p>
         )}
         {isLoading && (
             <div className="flex items-center justify-center h-full">

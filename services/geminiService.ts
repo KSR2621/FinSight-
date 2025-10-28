@@ -1,6 +1,16 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Transaction, GroundingChunk } from '../types';
 
+const getApiKey = (): string | null => {
+    // Prefer the environment variable if it's set (for secure development environments)
+    if (process.env.API_KEY) {
+        return process.env.API_KEY;
+    }
+    // Fall back to session storage for user-provided keys on static deployments
+    return sessionStorage.getItem('gemini_api_key');
+};
+
+
 /**
  * Gets the AI client on-demand.
  * This function is called before every AI-related request to ensure the client
@@ -9,7 +19,7 @@ import { Transaction, GroundingChunk } from '../types';
  * @throws An error if the API_KEY environment variable is not set.
  */
 const getAiClient = (): GoogleGenAI => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("AI service not configured. Please ensure the API_KEY environment variable is set.");
   }

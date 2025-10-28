@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { generateContentAnalysis } from '../services/geminiService';
 import { DocumentMagnifyingGlassIcon, RefreshIcon } from './icons';
+import ApiKeyModal from './ApiKeyModal';
 
 const AiContentAnalyzer: React.FC = () => {
   const [content, setContent] = useState<string>('');
   const [analysis, setAnalysis] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const handleAnalyzeContent = useCallback(async () => {
     if (!content.trim()) {
@@ -21,7 +23,12 @@ const AiContentAnalyzer: React.FC = () => {
       const result = await generateContentAnalysis(content);
       setAnalysis(result);
     } catch (err) {
-      setError('Failed to analyze content. Please try again.');
+      if (err instanceof Error && err.message.includes("AI service not configured")) {
+        setShowApiKeyModal(true);
+        setError("Please provide your API key to analyze content.");
+      } else {
+        setError('Failed to analyze content. Please try again.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -30,6 +37,16 @@ const AiContentAnalyzer: React.FC = () => {
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md mt-8">
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={(key) => {
+            sessionStorage.setItem('gemini_api_key', key);
+            setShowApiKeyModal(false);
+            handleAnalyzeContent(); // Retry
+          }}
+        />
+      )}
       <div className="flex items-center mb-4">
         <DocumentMagnifyingGlassIcon className="h-6 w-6 text-secondary dark:text-secondary-dark mr-2" />
         <h3 className="text-lg font-semibold text-text-primary dark:text-white">AI Content Analyzer</h3>
