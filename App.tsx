@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType, Category } from './types';
 import { generateInitialTransactions } from './constants';
@@ -7,8 +6,13 @@ import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
 import AiChatbot from './components/AiChatbot';
+import AiContentAnalyzer from './components/AiContentAnalyzer';
 
-const App: React.FC = () => {
+interface AppProps {
+  onLogout: () => void;
+}
+
+const App: React.FC<AppProps> = ({ onLogout }) => {
   const [transactions, setTransactions] = useState<Transaction[]>(generateInitialTransactions());
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -57,11 +61,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 font-sans">
-      <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+      <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />
 
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <Dashboard transactions={transactions} />
         
+        <AiContentAnalyzer />
+
         <div className="mt-8">
           <TransactionList
             transactions={transactions}

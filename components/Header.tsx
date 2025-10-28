@@ -1,13 +1,13 @@
-
 import React from 'react';
-import { SunIcon, MoonIcon, ChartPieIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, ArrowRightOnRectangleIcon } from './icons';
 
 interface HeaderProps {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
+const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onLogout }) => {
   return (
     <header className="bg-card dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
               FinSight AI
             </h1>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full text-gray-400 hover:text-text-primary dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
@@ -29,6 +29,13 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
               ) : (
                 <MoonIcon className="h-6 w-6" />
               )}
+            </button>
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-full text-gray-400 hover:text-text-primary dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+              aria-label="Logout"
+            >
+              <ArrowRightOnRectangleIcon className="h-6 w-6" />
             </button>
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Chat } from "@google/genai";
 import { Transaction } from '../types';
 
@@ -36,6 +35,35 @@ export const generateFinancialSummary = async (transactions: Transaction[]): Pro
     return "Sorry, I couldn't generate a summary at this moment. Please check the console for errors.";
   }
 };
+
+export const generateContentAnalysis = async (content: string): Promise<string> => {
+    if (!API_KEY) return "API Key not configured. Please add your Gemini API key.";
+    if (!content.trim()) return "Please provide some content to analyze.";
+
+    try {
+      const prompt = `
+        Analyze the following text and provide a concise, insightful summary in markdown format.
+        - Identify the main topics or arguments.
+        - Determine the overall sentiment (e.g., positive, negative, neutral).
+        - Extract any key takeaways or conclusions.
+  
+        Content to analyze:
+        ---
+        ${content}
+        ---
+      `;
+  
+      const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt
+      });
+      
+      return response.text;
+    } catch (error) {
+      console.error("Error generating content analysis:", error);
+      return "Sorry, I couldn't analyze the content at this moment. Please check the console for errors.";
+    }
+  };
 
 
 export const startChat = (transactions: Transaction[]): Chat => {
