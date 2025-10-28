@@ -198,12 +198,15 @@ const News: React.FC = () => {
                     <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
                         <h4 className="text-xs font-semibold uppercase text-text-secondary dark:text-gray-400 mb-2">Sources</h4>
                         <ul className="list-disc list-inside space-y-1">
+                            {/* FIX: Add checks for optional properties to prevent runtime errors. */}
                             {sources.map((source, index) => (
+                                source.web?.uri && (
                                 <li key={index} className="text-sm">
                                     <a href={source.web.uri} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
                                         {source.web.title || source.web.uri}
                                     </a>
                                 </li>
+                                )
                             ))}
                         </ul>
                     </div>

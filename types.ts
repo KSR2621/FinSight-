@@ -1,4 +1,5 @@
 
+
 export enum TransactionType {
   INCOME = 'Income',
   EXPENSE = 'Expense',
@@ -38,11 +39,13 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   INR: '₹',
 };
 
+// FIX: Make properties optional to match the Gemini API response structure.
 export interface GroundingChunkSource {
-  uri: string;
-  title: string;
+  uri?: string;
+  title?: string;
 }
 
+// FIX: Make web property optional as grounding chunks can be of different types (e.g., maps).
 export interface GroundingChunk {
-  web: GroundingChunkSource;
+  web?: GroundingChunkSource;
 }
