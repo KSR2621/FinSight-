@@ -14,15 +14,26 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const initializeChat = useCallback(() => {
-    chatRef.current = startChat(transactions);
-    setMessages([{
-        role: 'model',
-        text: "Hello! I'm your personal finance assistant. How can I help you analyze your spending or find savings opportunities today?"
-    }]);
+    const chat = startChat(transactions);
+    if (chat) {
+        chatRef.current = chat;
+        setMessages([{
+            role: 'model',
+            text: "Hello! I'm your personal finance assistant. How can I help you analyze your spending or find savings opportunities today?"
+        }]);
+        setIsInitialized(true);
+    } else {
+        setMessages([{
+            role: 'model',
+            text: "The AI chat feature is not available. Please ensure the API_KEY environment variable is configured correctly."
+        }]);
+        setIsInitialized(false);
+    }
   }, [transactions]);
 
   useEffect(() => {
@@ -123,12 +134,12 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your finances..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-full bg-transparent focus:outline-none focus:ring-2 focus:ring-primary"
-              disabled={isLoading}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-full bg-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed"
+              disabled={isLoading || !isInitialized}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !isInitialized}
               className="bg-primary text-white px-4 py-2 rounded-r-full hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
             >
               <PaperAirplaneIcon className="h-5 w-5" />

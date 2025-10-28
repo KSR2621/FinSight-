@@ -1,16 +1,30 @@
+
 import { GoogleGenAI, Chat } from "@google/genai";
 import { Transaction } from '../types';
 
-const API_KEY = process.env.API_KEY;
+// Safely access the API key to prevent 'process is not defined' error in browsers
+const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
 
-if (!API_KEY) {
-  console.warn("Gemini API key not found. Please set the API_KEY environment variable.");
+let ai: GoogleGenAI | null = null;
+
+// Initialize the AI client only if the API key is available
+if (API_KEY) {
+  try {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI:", error);
+  }
+} else {
+  console.warn("Gemini API key not found. Set the API_KEY environment variable for AI features.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+const getApiError = () => {
+    return "AI service not configured. Please ensure the API_KEY environment variable is set.";
+}
 
 export const generateFinancialSummary = async (transactions: Transaction[]): Promise<string> => {
-  if (!API_KEY) return "API Key not configured. Please add your Gemini API key.";
+  if (!ai) return getApiError();
+  
   try {
     const prompt = `
       Analyze the following financial transactions and provide a concise, insightful summary.
@@ -37,7 +51,7 @@ export const generateFinancialSummary = async (transactions: Transaction[]): Pro
 };
 
 export const generateContentAnalysis = async (content: string): Promise<string> => {
-    if (!API_KEY) return "API Key not configured. Please add your Gemini API key.";
+    if (!ai) return getApiError();
     if (!content.trim()) return "Please provide some content to analyze.";
 
     try {
@@ -66,7 +80,9 @@ export const generateContentAnalysis = async (content: string): Promise<string> 
   };
 
 
-export const startChat = (transactions: Transaction[]): Chat => {
+export const startChat = (transactions: Transaction[]): Chat | null => {
+    if (!ai) return null;
+
     const history = [
         {
             role: "user",
