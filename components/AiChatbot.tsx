@@ -1,9 +1,30 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Transaction, ChatMessage } from '../types';
 import { startChat } from '../services/geminiService';
 import { Chat } from '@google/genai';
-import { PaperAirplaneIcon, XMarkIcon, ChatBubbleOvalLeftEllipsisIcon, SparklesIcon } from './icons';
+import { PaperAirplaneIcon, XMarkIcon, ChatBubbleOvalLeftEllipsisIcon, SparklesIcon, MicrophoneIcon } from './icons';
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start: () => void;
+  stop: () => void;
+  onstart: () => void;
+  onresult: (event: any) => void;
+  onerror: (event: any) => void;
+  onend: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: { new(): SpeechRecognition };
+    webkitSpeechRecognition: { new(): SpeechRecognition };
+  }
+}
 
 interface AiChatbotProps {
   transactions: Transaction[];
@@ -17,6 +38,10 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [micStatus, setMicStatus] = useState<'idle' | 'listening'>('idle');
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const initializeChat = useCallback(() => {
     const chat = startChat(transactions);
@@ -35,6 +60,11 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
         setIsInitialized(false);
     }
   }, [transactions]);
+
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setIsSpeechRecognitionSupported(!!SpeechRecognitionAPI);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -78,6 +108,50 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
       setIsLoading(false);
     }
   };
+  
+  const handleToggleListening = () => {
+    if (micStatus === 'listening') {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    if (!isSpeechRecognitionSupported) return;
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionAPI();
+    recognitionRef.current = recognition;
+
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onstart = () => {
+      setMicStatus('listening');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => prev ? `${prev} ${transcript}`: transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+    };
+    
+    recognition.onend = () => {
+      setMicStatus('idle');
+      recognitionRef.current = null;
+    };
+    
+    try {
+        recognition.start();
+    } catch (e) {
+        console.error("Failed to start speech recognition:", e);
+        setMicStatus('idle');
+        recognitionRef.current = null;
+    }
+  };
+
 
   return (
     <>
@@ -129,18 +203,31 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions }) => {
         {/* Input */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <form onSubmit={handleSendMessage} className="flex items-center">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your finances..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-full bg-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed"
-              disabled={isLoading || !isInitialized}
-            />
+            <div className="relative w-full">
+                <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about your finances..."
+                className="w-full pl-4 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-l-full bg-transparent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed"
+                disabled={isLoading || !isInitialized}
+                />
+                {isSpeechRecognitionSupported && (
+                    <button
+                        type="button"
+                        onClick={handleToggleListening}
+                        disabled={!isInitialized || isLoading}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-primary disabled:text-gray-300"
+                        aria-label={micStatus === 'listening' ? 'Stop listening' : 'Start listening'}
+                    >
+                        <MicrophoneIcon className={`h-5 w-5 ${micStatus === 'listening' ? 'text-red-500 animate-pulse' : ''}`} />
+                    </button>
+                )}
+            </div>
             <button
               type="submit"
               disabled={isLoading || !input.trim() || !isInitialized}
-              className="bg-primary text-white px-4 py-2 rounded-r-full hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+              className="bg-primary text-white px-4 py-2 rounded-r-full hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed h-[42px]"
             >
               <PaperAirplaneIcon className="h-5 w-5" />
             </button>

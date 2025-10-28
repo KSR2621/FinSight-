@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Transaction, GroundingChunk } from '../types';
 
@@ -122,6 +123,34 @@ export const startChat = (transactions: Transaction[]): Chat | null => {
         {
             role: "model",
             parts: [{text: "Hello! I'm your personal finance assistant. I can see your latest transactions. How can I help you analyze your spending or find savings opportunities today?"}]
+        }
+    ];
+
+    const chat = ai.chats.create({
+        model: 'gemini-2.5-flash',
+        history: history,
+    });
+    return chat;
+};
+
+export const startNewsChat = (newsSummary: string): Chat | null => {
+    if (!ai) return null;
+
+    const history = [
+        {
+            role: "user",
+            parts: [{text: `You are a helpful assistant. Your task is to answer questions based *only* on the provided financial news summary. Do not use any external knowledge. If the answer cannot be found in the summary, clearly state that the provided text does not contain the answer.
+
+            Here is the news summary you must use:
+            ---
+            ${newsSummary}
+            ---
+            
+            Now, please wait for the user's question.`}],
+        },
+        {
+            role: "model",
+            parts: [{text: "I have read the news summary. What would you like to know?"}]
         }
     ];
 
