@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Transaction, TransactionType, Category } from './types';
-import { generateInitialTransactions } from './constants';
+import { Transaction, TransactionType, Category, Currency } from './types';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
@@ -13,18 +12,50 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ onLogout }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(generateInitialTransactions());
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    // Load transactions from localStorage on initial render
+    try {
+      const savedTransactions = localStorage.getItem('transactions');
+      return savedTransactions ? JSON.parse(savedTransactions) : [];
+    } catch (error) { {
+      console.error("Could not parse transactions from localStorage", error);
+      return [];
+    }
+  });
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true';
+  });
+  const [currency, setCurrency] = useState<Currency>(() => {
+    return (localStorage.getItem('currency') as Currency) || 'USD';
+  });
 
+  // Save transactions to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+    } catch (error) {
+      console.error("Could not save transactions to localStorage", error);
+    }
+  }, [transactions]);
+
+  // Save dark mode preference to localStorage
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
     }
   }, [isDarkMode]);
+  
+  // Save currency preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('currency', currency);
+  }, [currency]);
+
 
   const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
@@ -61,10 +92,16 @@ const App: React.FC<AppProps> = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 font-sans">
-      <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />
+      <Header 
+        isDarkMode={isDarkMode} 
+        toggleDarkMode={toggleDarkMode} 
+        onLogout={onLogout}
+        currency={currency}
+        onCurrencyChange={setCurrency}
+      />
 
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <Dashboard transactions={transactions} />
+        <Dashboard transactions={transactions} currency={currency} />
         
         <AiContentAnalyzer />
 
@@ -74,6 +111,7 @@ const App: React.FC<AppProps> = ({ onLogout }) => {
             onAddTransaction={openAddModal}
             onEditTransaction={openEditModal}
             onDeleteTransaction={handleDeleteTransaction}
+            currency={currency}
           />
         </div>
       </main>

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, Category, TransactionType } from '../types';
+import { Transaction, Category, TransactionType, Currency, CURRENCY_SYMBOLS } from '../types';
 import { PencilIcon, TrashIcon, PlusIcon } from './icons';
 
 interface TransactionListProps {
@@ -8,6 +8,7 @@ interface TransactionListProps {
   onAddTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
+  currency: Currency;
 }
 
 const TransactionList: React.FC<TransactionListProps> = ({
@@ -15,6 +16,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   onAddTransaction,
   onEditTransaction,
   onDeleteTransaction,
+  currency,
 }) => {
   const [filter, setFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +34,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return Array.from(cats);
   }, [transactions]);
 
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   return (
     <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -85,7 +88,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 </td>
                 <td className="py-3 px-4 text-text-secondary dark:text-gray-300">{new Date(t.date).toLocaleDateString()}</td>
                 <td className={`py-3 px-4 font-semibold text-right ${t.type === 'Income' ? 'text-green-500' : 'text-red-500'}`}>
-                  {t.type === 'Income' ? '+' : '-'}${t.amount.toFixed(2)}
+                  {t.type === 'Income' ? '+' : '-'}{currencySymbol}{t.amount.toFixed(2)}
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center justify-center gap-2">
@@ -103,7 +106,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
         </table>
         {filteredTransactions.length === 0 && (
             <div className="text-center py-8 text-text-secondary dark:text-gray-400">
-                No transactions found.
+                No transactions found. Add one to get started!
             </div>
         )}
       </div>

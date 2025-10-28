@@ -30,3 +30,10 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
 }
+
+export type Currency = 'USD' | 'INR';
+
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  USD: '$',
+  INR: '₹',
+};
