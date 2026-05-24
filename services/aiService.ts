@@ -1,88 +1,87 @@
-import { GoogleGenAI } from "@google/genai";
 import { Transaction, Category } from "../types";
 
-// Helper to get the AI instance, avoiding top-level crashes if API key is missing
-const getAiInstance = () => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("An API Key must be set when running in a browser");
+const OPENROUTER_API_KEY = "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";
+const MODEL = "mistralai/mistral-7b-instruct-v0.1"; // Or any other preferred model on OpenRouter
+
+const callOpenRouter = async (prompt: string, isJson = false) => {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "FinSight",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }],
+        response_format: isJson ? { type: "json_object" } : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("AI request failed:", error);
+    throw error;
   }
-  return new GoogleGenAI({ apiKey });
 };
 
-export const geminiService = {
+export const aiService = {
   // Auto-categorize a transaction description
   categorizeTransaction: async (description: string): Promise<Category> => {
-    const ai = getAiInstance();
-    const model = "gemini-1.5-flash";
     const prompt = `Categorize this financial transaction description into one of these categories: ${Object.values(Category).join(", ")}. 
     Description: "${description}"
     Return only the category name.`;
 
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-      });
-      const category = response.text.trim() as Category;
+      const text = await callOpenRouter(prompt);
+      const category = text.trim() as Category;
       return Object.values(Category).includes(category) ? category : Category.OTHER;
     } catch (error) {
-      console.error("AI Categorization failed:", error);
       return Category.OTHER;
     }
   },
 
   // Generate spending insights and suggestions
   getFinancialInsights: async (transactions: Transaction[], budgets: any[]): Promise<string[]> => {
-    const ai = getAiInstance();
-    const model = "gemini-1.5-flash";
     const summary = transactions.slice(0, 20).map(t => `${t.date}: ${t.description} - ${t.amount} (${t.category})`).join("\n");
     const prompt = `Analyze these recent transactions and provide 3 actionable financial tips or observations. 
     Keep them short, professional, and encouraging.
     Transactions:
     ${summary}
-    Return as a JSON array of strings.`;
+    Return the response in JSON format with a key "insights" which is an array of strings.`;
 
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-      });
-      // Handle potential markdown formatting in JSON response
-      const cleanText = response.text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanText);
+      const text = await callOpenRouter(prompt, true);
+      const data = JSON.parse(text);
+      return data.insights || ["Keep tracking your expenses to get personalized insights.", "Consider setting up a budget for better control.", "You're doing great! Keep it up."];
     } catch (error) {
-      console.error("AI Insights failed:", error);
       return ["Keep tracking your expenses to get personalized insights.", "Consider setting up a budget for better control.", "You're doing great! Keep it up."];
     }
   },
 
   // Chatbot response
   getChatResponse: async (message: string, context: { transactions: Transaction[], balance: number }): Promise<string> => {
-    const ai = getAiInstance();
-    const model = "gemini-1.5-flash";
     const prompt = `You are FinSight AI, a professional financial assistant. 
     User Question: "${message}"
     User Context: Current Balance: ${context.balance}, Recent Transactions: ${context.transactions.slice(0, 5).map(t => t.description).join(", ")}
     Provide a helpful, concise response.`;
 
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-      });
-      return response.text;
+      return await callOpenRouter(prompt);
     } catch (error) {
-      console.error("AI Chat failed:", error);
       return "I'm sorry, I'm having trouble connecting right now. Please try again later.";
     }
   },
 
   // Predict future expenses
   getExpenseForecast: async (transactions: Transaction[]): Promise<{ nextWeek: number, nextMonth: number, reasoning: string }> => {
-    const ai = getAiInstance();
-    const model = "gemini-1.5-flash";
     const expenses = transactions.filter(t => t.type === 'Expense');
     const summary = expenses.slice(0, 50).map(t => `${t.date}: ${t.amount} (${t.category})`).join("\n");
     
@@ -95,16 +94,9 @@ export const geminiService = {
     Return the response in JSON format with these keys: "nextWeek" (number), "nextMonth" (number), "reasoning" (string).`;
 
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-      });
-      // Handle potential markdown formatting in JSON response
-      const cleanText = response.text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanText);
+      const text = await callOpenRouter(prompt, true);
+      return JSON.parse(text);
     } catch (error) {
-      console.error("AI Forecast failed:", error);
       // Fallback calculation
       const avgDaily = expenses.length > 0 
         ? expenses.reduce((sum, t) => sum + t.amount, 0) / (expenses.length * 30) // Very rough estimate

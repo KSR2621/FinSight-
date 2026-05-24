@@ -160,7 +160,8 @@ const App: React.FC<AppProps> = ({ user }) => {
 
       <main className="max-w-7xl mx-auto">
         <Routes>
-          <Route path="/" element={<DashboardPage transactions={transactions} currency={currency} user={user} />} />
+          <Route path="/" element={<Navigate to="/transactions" replace />} />
+          <Route path="/dashboard" element={<DashboardPage transactions={transactions} currency={currency} user={user} />} />
           <Route path="/transactions" element={<TransactionsPage currency={currency} user={user} />} />
           <Route path="/budgets" element={<BudgetsGoalsPage currency={currency} transactions={transactions} user={user} />} />
           <Route path="/horizon" element={<WealthHorizonPage transactions={transactions} currency={currency} />} />
@@ -175,15 +176,15 @@ const App: React.FC<AppProps> = ({ user }) => {
       {/* Global Transaction Modal */}
       <AnimatePresence>
         {isFormModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl relative"
+              className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative my-auto"
             >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-text-primary dark:text-white">
+              <div className="flex items-center justify-between mb-4 md:mb-8">
+                <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white">
                   {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
                 </h2>
                 <button
