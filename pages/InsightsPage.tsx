@@ -10,7 +10,7 @@ import {
   WalletIcon
 } from '../components/icons';
 import { Transaction, Currency, CURRENCY_SYMBOLS } from '../types';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { 
   AreaChart, 
   Area, 
@@ -39,8 +39,8 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
       setLoading(true);
       try {
         const [forecastData, insightsData] = await Promise.all([
-          geminiService.getExpenseForecast(transactions),
-          geminiService.getFinancialInsights(transactions, [])
+          aiService.getExpenseForecast(transactions),
+          aiService.getFinancialInsights(transactions, [])
         ]);
         setForecast(forecastData);
         setInsights(insightsData);
