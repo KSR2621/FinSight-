@@ -150,6 +150,7 @@ const App: React.FC<AppProps> = ({ user }) => {
       </AnimatePresence>
 
       <Header 
+        user={user}
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
         currency={currency}
