@@ -6,6 +6,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import fs from 'fs/promises';
+import Parser from 'rss-parser';
 
 dotenv.config();
 
@@ -177,6 +178,79 @@ async function startServer() {
   app.get('/api/portfolio', async (req, res) => {
     const data = await loadData();
     res.json(data.portfolio);
+  });
+
+  // News API with Caching
+  const parser = new Parser();
+  let newsCache: { data: any, timestamp: number } | null = null;
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+  const NEWS_SOURCES = [
+    { name: 'BBC Business', url: 'http://feeds.bbci.co.uk/news/business/rss.xml', defaultCategory: 'Global' },
+    { name: 'CNN Business', url: 'http://rss.cnn.com/rss/money_latest.rss', defaultCategory: 'Economy' },
+    { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex', defaultCategory: 'Markets' },
+    { name: 'Google News Finance', url: 'https://news.google.com/rss/search?q=finance+markets+crypto+startups&hl=en-US&gl=US&ceid=US:en', defaultCategory: 'General' }
+  ];
+
+  app.get('/api/news', async (req, res) => {
+    try {
+      if (newsCache && (Date.now() - newsCache.timestamp < CACHE_DURATION)) {
+        return res.json(newsCache.data);
+      }
+
+      const feedPromises = NEWS_SOURCES.map(async (source) => {
+        try {
+          const feed = await parser.parseURL(source.url);
+          return feed.items.map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            content: item.contentSnippet || item.content,
+            source: source.name,
+            category: source.defaultCategory, // Initial category based on source
+            guid: item.guid || item.link
+          }));
+        } catch (error) {
+          console.error(`Error fetching feed from ${source.name}:`, error);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(feedPromises);
+      let allNews = results.flat();
+
+      // Sort by date
+      allNews.sort((a, b) => {
+        return new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime();
+      });
+
+      // Simple keyword-based categorization enhancement
+      allNews = allNews.map(item => {
+        const text = (item.title + ' ' + (item.content || '')).toLowerCase();
+        if (text.includes('crypto') || text.includes('bitcoin') || text.includes('ethereum') || text.includes('blockchain') || text.includes('binance') || text.includes('coinbase')) {
+          item.category = 'Crypto';
+        } else if (text.includes('startup') || text.includes('venture capital') || text.includes('funding round') || text.includes('ipo ') || text.includes('unicorn') || text.includes('founder')) {
+          item.category = 'Startups';
+        } else if (text.includes('tech') || text.includes('apple') || text.includes('google') || text.includes('microsoft') || text.includes('ai ') || text.includes('nvidia') || text.includes('software')) {
+          item.category = 'Technology';
+        } else if (text.includes('market') || text.includes('stock') || text.includes('nasdaq') || text.includes('sp 500') || text.includes('dow jones') || text.includes('equities') || text.includes('trading')) {
+          item.category = 'Markets';
+        } else if (text.includes('economy') || text.includes('inflation') || text.includes('fed ') || text.includes('interest rate') || text.includes('recession') || text.includes('gdp') || text.includes('fiscal')) {
+          item.category = 'Economy';
+        }
+        return item;
+      });
+
+      newsCache = {
+        data: allNews,
+        timestamp: Date.now()
+      };
+
+      res.json(allNews);
+    } catch (error) {
+      console.error('News fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch news' });
+    }
   });
 
   // AI Features

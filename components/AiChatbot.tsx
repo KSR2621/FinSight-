@@ -43,7 +43,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-50">
+    <div className="fixed bottom-8 right-8 z-50 hidden md:block">
       <AnimatePresence>
         {isOpen && (
           <motion.div
