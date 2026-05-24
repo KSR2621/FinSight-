@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon } from './icons';
-import { Currency } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon } from './icons';
+import { Currency, User } from '../types';
 
 interface HeaderProps {
+  user: User;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   currency: Currency;
@@ -12,7 +13,9 @@ interface HeaderProps {
   onAddTransaction: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction }) => {
+const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navItems = [
     { label: 'Dashboard', path: '/' },
     { label: 'Transactions', path: '/transactions' },
@@ -21,6 +24,11 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, currency, o
     { label: 'Wealth Horizon', path: '/horizon' },
     { label: 'News', path: '/news' },
   ];
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'JD';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
 
   return (
     <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
@@ -119,16 +127,101 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, currency, o
             {/* User Profile - Recipe 8/12 */}
             <button className="flex items-center gap-3 pl-1 pr-3 py-1 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group">
               <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-                JD
+                {getInitials(user.displayName)}
               </div>
               <div className="hidden lg:block text-left">
-                <p className="text-[10px] font-bold text-text-primary dark:text-white leading-none mb-1">John Doe</p>
+                <p className="text-[10px] font-bold text-text-primary dark:text-white leading-none mb-1">{user.displayName || 'John Doe'}</p>
                 <p className="text-[8px] font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest leading-none">Pro Member</p>
               </div>
+            </button>
+
+            <div className="h-8 w-px bg-gray-200 dark:bg-gray-800 md:hidden" />
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-100 dark:border-gray-700 transition-all md:hidden"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
+          >
+            <div className="px-4 py-6 space-y-4">
+              <nav className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `px-4 py-3 rounded-xl text-base font-bold transition-all ${
+                        isActive
+                          ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
+                          : 'text-text-secondary dark:text-gray-400'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
+
+              <div className="h-px bg-gray-100 dark:bg-gray-800 w-full" />
+
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Currency</span>
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-800/50 rounded-2xl p-1 border border-gray-200 dark:border-gray-700 shadow-inner">
+                    <button
+                      onClick={() => onCurrencyChange('USD')}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-[0.2em] transition-all ${
+                        currency === 'USD'
+                          ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-lg'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      USD
+                    </button>
+                    <button
+                      onClick={() => onCurrencyChange('INR')}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-[0.2em] transition-all ${
+                        currency === 'INR'
+                          ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-lg'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      INR
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Appearance</span>
+                  <button
+                    onClick={toggleDarkMode}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-100 dark:border-gray-700"
+                  >
+                    {isDarkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+                    <span className="text-sm font-bold">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

@@ -1,27 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import LandingPage from './components/LandingPage';
+import SignupPage from './components/SignupPage';
 import { User } from './types';
 
-// A mock user for guest access. All data will be stored under this user's ID in Firestore.
-const guestUser: User = {
-  uid: 'guest_user_001', // A unique ID for the guest user
-  email: 'guest@finsight.ai',
-};
-
 const Site: React.FC = () => {
-  const [showApp, setShowApp] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
 
-  if (showApp) {
+  useEffect(() => {
+    const savedUser = localStorage.getItem('finsight_user');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error('Failed to parse saved user', e);
+      }
+    }
+  }, []);
+
+  const handleSignup = (user: User) => {
+    setCurrentUser(user);
+    setShowSignup(false);
+  };
+
+  if (currentUser) {
     return (
       <HashRouter>
-        <App user={guestUser} />
+        <App user={currentUser} />
       </HashRouter>
     );
   }
+
+  if (showSignup) {
+    return <SignupPage onSignup={handleSignup} onBack={() => setShowSignup(false)} />;
+  }
   
-  return <LandingPage onLaunchApp={() => setShowApp(true)} />;
+  return <LandingPage onLaunchApp={() => setShowSignup(true)} />;
 };
 
 export default Site;
