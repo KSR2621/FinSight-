@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Transaction, Currency, User } from './types';
 import Header from './components/Header';
+import MobileNav from './components/MobileNav';
 import TransactionForm from './components/TransactionForm';
 import { api } from './services/api';
 import { RefreshIcon, PlusIcon, AlertCircleIcon } from './components/icons';
@@ -161,7 +162,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         onLogout={() => setIsLogoutConfirmOpen(true)}
       />
 
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-7xl mx-auto pb-24 md:pb-8">
         <Routes>
           <Route path="/" element={<Navigate to="/transactions" replace />} />
           <Route path="/dashboard" element={<DashboardPage transactions={transactions} currency={currency} user={user} />} />
@@ -175,6 +176,8 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       </main>
 
       <AiChatbot transactions={transactions} currency={currency} balance={balance} />
+
+      <MobileNav />
 
       {/* Logout Confirmation Modal */}
       <AnimatePresence>

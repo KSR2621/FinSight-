@@ -192,28 +192,7 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
           >
-            <div className="px-4 py-6 space-y-4">
-              <nav className="flex flex-col gap-2">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `px-4 py-3 rounded-xl text-base font-bold transition-all ${
-                        isActive
-                          ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
-                          : 'text-text-secondary dark:text-gray-400'
-                      }`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </nav>
-
-              <div className="h-px bg-gray-100 dark:bg-gray-800 w-full" />
-
+            <div className="px-4 py-6 space-y-6">
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Currency</span>
