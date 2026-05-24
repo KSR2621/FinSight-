@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { Transaction, Budget } from '../types';
 import { SparklesIcon, TrendingUpIcon, WalletIcon } from './icons';
 
@@ -22,7 +22,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ transactions, budgets }) => {
       }
       setIsLoading(true);
       try {
-        const data = await geminiService.getFinancialInsights(transactions, budgets);
+        const data = await aiService.getFinancialInsights(transactions, budgets);
         setInsights(data);
       } catch (error) {
         setInsights(["Focus on your top spending categories this month.", "Consider setting a budget for 'Dining Out'.", "Your savings rate is looking healthy!"]);
