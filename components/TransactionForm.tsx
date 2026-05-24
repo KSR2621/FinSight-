@@ -66,8 +66,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, currency, i
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col max-h-[min(70vh,600px)]">
+      <div className="flex-1 overflow-y-auto space-y-4 md:space-y-6 pr-2 -mr-2 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-1.5 md:space-y-2">
           <div className="flex justify-between items-center">
             <label className="text-[10px] md:text-xs font-mono text-text-secondary dark:text-gray-400 uppercase tracking-widest ml-1">Description</label>
@@ -202,12 +203,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, currency, i
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="w-full py-4 md:py-5 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-[0.98]"
-      >
-        {initialData ? 'Update Transaction' : 'Save Transaction'}
-      </button>
+      </div>
+
+      <div className="pt-4 md:pt-6 mt-auto">
+        <button
+          type="submit"
+          className="w-full py-4 md:py-5 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-[0.98]"
+        >
+          {initialData ? 'Update Transaction' : 'Save Transaction'}
+        </button>
+      </div>
     </form>
   );
 };
