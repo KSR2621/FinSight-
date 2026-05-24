@@ -4,7 +4,7 @@ import { Transaction, Currency, User } from './types';
 import Header from './components/Header';
 import TransactionForm from './components/TransactionForm';
 import { api } from './services/api';
-import { RefreshIcon, PlusIcon } from './components/icons';
+import { RefreshIcon, PlusIcon, AlertCircleIcon } from './components/icons';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Import Pages
@@ -24,6 +24,7 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -157,7 +158,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         currency={currency}
         onCurrencyChange={setCurrency}
         onAddTransaction={openAddModal}
-        onLogout={onLogout}
+        onLogout={() => setIsLogoutConfirmOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto">
@@ -174,6 +175,47 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       </main>
 
       <AiChatbot transactions={transactions} currency={currency} balance={balance} />
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {isLogoutConfirmOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-2xl border border-gray-100 dark:border-gray-700"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center mb-6">
+                  <AlertCircleIcon className="w-8 h-8 text-rose-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-text-primary dark:text-white mb-2">Sign Out?</h3>
+                <p className="text-text-secondary dark:text-gray-400 mb-8">
+                  Are you sure you want to sign out of your account? You'll need to sign back in to access your data.
+                </p>
+                <div className="flex w-full gap-4">
+                  <button
+                    onClick={() => setIsLogoutConfirmOpen(false)}
+                    className="flex-1 px-6 py-4 rounded-xl font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border border-gray-100 dark:border-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsLogoutConfirmOpen(false);
+                      onLogout();
+                    }}
+                    className="flex-1 px-6 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-500/20 active:scale-95"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Global Transaction Modal */}
       <AnimatePresence>

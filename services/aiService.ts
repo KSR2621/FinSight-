@@ -1,9 +1,13 @@
 import { Transaction, Category } from "../types";
 
-const OPENROUTER_API_KEY = "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";
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const MODEL = "mistralai/mistral-7b-instruct-v0.1"; // Or any other preferred model on OpenRouter
 
 const callOpenRouter = async (prompt: string, isJson = false) => {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("AI_CONFIG_ERROR: OpenRouter API key is missing");
+  }
+
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -21,10 +25,14 @@ const callOpenRouter = async (prompt: string, isJson = false) => {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenRouter API error: ${response.status} ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error("Invalid response from OpenRouter");
+    }
     return data.choices[0].message.content;
   } catch (error) {
     console.error("AI request failed:", error);
@@ -73,11 +81,7 @@ export const aiService = {
     User Context: Current Balance: ${context.balance}, Recent Transactions: ${context.transactions.slice(0, 5).map(t => t.description).join(", ")}
     Provide a helpful, concise response.`;
 
-    try {
-      return await callOpenRouter(prompt);
-    } catch (error) {
-      return "I'm sorry, I'm having trouble connecting right now. Please try again later.";
-    }
+    return await callOpenRouter(prompt);
   },
 
   // Predict future expenses
