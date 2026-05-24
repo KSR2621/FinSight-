@@ -18,9 +18,10 @@ import AiChatbot from './components/AiChatbot';
 
 interface AppProps {
   user: User;
+  onLogout: () => void;
 }
 
-const App: React.FC<AppProps> = ({ user }) => {
+const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -156,6 +157,7 @@ const App: React.FC<AppProps> = ({ user }) => {
         currency={currency}
         onCurrencyChange={setCurrency}
         onAddTransaction={openAddModal}
+        onLogout={onLogout}
       />
 
       <main className="max-w-7xl mx-auto">
