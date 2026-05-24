@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { Transaction, Currency, CURRENCY_SYMBOLS } from '../types';
 import { SparklesIcon, XMarkIcon, PaperAirplaneIcon, UserIcon, BotIcon } from './icons';
 
@@ -33,7 +33,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
     setIsTyping(true);
 
     try {
-      const response = await geminiService.getChatResponse(userMsg, { transactions, balance });
+      const response = await aiService.getChatResponse(userMsg, { transactions, balance });
       setMessages(prev => [...prev, { role: 'bot', text: response }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'bot', text: "I'm sorry, I'm having trouble connecting right now." }]);
