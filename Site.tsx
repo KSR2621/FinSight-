@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import LandingPage from './components/LandingPage';
-import SignupPage from './components/SignupPage';
+import Auth from './components/Auth';
 import { User } from './types';
 
 const Site: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [showSignup, setShowSignup] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('finsight_user');
@@ -20,24 +20,29 @@ const Site: React.FC = () => {
     }
   }, []);
 
-  const handleSignup = (user: User) => {
+  const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
-    setShowSignup(false);
+    setShowAuth(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('finsight_user');
+    setCurrentUser(null);
   };
 
   if (currentUser) {
     return (
       <HashRouter>
-        <App user={currentUser} />
+        <App user={currentUser} onLogout={handleLogout} />
       </HashRouter>
     );
   }
 
-  if (showSignup) {
-    return <SignupPage onSignup={handleSignup} onBack={() => setShowSignup(false)} />;
+  if (showAuth) {
+    return <Auth onAuthSuccess={handleAuthSuccess} onBack={() => setShowAuth(false)} />;
   }
   
-  return <LandingPage onLaunchApp={() => setShowSignup(true)} />;
+  return <LandingPage onLaunchApp={() => setShowAuth(true)} />;
 };
 
 export default Site;

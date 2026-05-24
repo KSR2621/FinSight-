@@ -39,8 +39,8 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
       return diff <= 30;
     });
 
-    const income = last30Days.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expense = last30Days.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const income = last30Days.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+    const expense = last30Days.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
     
     return Math.max(0, income - expense);
   }, [transactions]);
@@ -54,7 +54,7 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
 
   const projectionData = useMemo(() => {
     const data = [];
-    let balance = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum - t.amount, 0);
+    let balance = transactions.reduce((sum, t) => t.type === 'Income' ? sum + t.amount : sum - t.amount, 0);
     const monthlyRate = annualReturn / 100 / 12;
 
     for (let i = 0; i <= years * 12; i++) {
@@ -73,7 +73,7 @@ const WealthHorizonPage: React.FC<WealthHorizonPageProps> = ({ transactions, cur
   const milestones = useMemo(() => {
     const targets = [10000, 50000, 100000, 500000, 1000000];
     const results = [];
-    let balance = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum - t.amount, 0);
+    let balance = transactions.reduce((sum, t) => t.type === 'Income' ? sum + t.amount : sum - t.amount, 0);
     const monthlyRate = annualReturn / 100 / 12;
     
     let currentMonth = 0;

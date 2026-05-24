@@ -34,23 +34,23 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchAiData = async () => {
-      setLoading(true);
-      try {
-        const [forecastData, insightsData] = await Promise.all([
-          aiService.getExpenseForecast(transactions),
-          aiService.getFinancialInsights(transactions, [])
-        ]);
-        setForecast(forecastData);
-        setInsights(insightsData);
-      } catch (error) {
-        console.error("Failed to fetch AI insights:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchAiData = async () => {
+    setLoading(true);
+    try {
+      const [forecastData, insightsData] = await Promise.all([
+        aiService.getExpenseForecast(transactions),
+        aiService.getFinancialInsights(transactions, [])
+      ]);
+      setForecast(forecastData);
+      setInsights(insightsData);
+    } catch (error) {
+      console.error("Failed to fetch AI insights:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (transactions.length > 0) {
       fetchAiData();
     } else {
@@ -263,8 +263,12 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
               ))}
             </div>
 
-            <button className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20">
-              Generate New Analysis
+            <button
+              onClick={fetchAiData}
+              disabled={loading}
+              className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+            >
+              {loading ? 'Analyzing...' : 'Generate New Analysis'}
             </button>
           </motion.div>
 
