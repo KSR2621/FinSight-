@@ -17,8 +17,8 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { label: 'Dashboard', path: '/' },
     { label: 'Transactions', path: '/transactions' },
+    { label: 'Dashboard', path: '/dashboard' },
     { label: 'Budgets', path: '/budgets' },
     { label: 'Insights', path: '/insights' },
     { label: 'Wealth Horizon', path: '/horizon' },
