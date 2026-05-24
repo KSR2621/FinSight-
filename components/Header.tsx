@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon } from './icons';
+import { SunIcon, MoonIcon, ChartPieIcon, PlusIcon, Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon, ChevronDownIcon } from './icons';
 import { Currency, User } from '../types';
 
 interface HeaderProps {
@@ -124,10 +124,10 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
               <PlusIcon className="h-5 w-5" />
             </button>
 
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-800" />
+            <div className="h-8 w-px bg-gray-200 dark:bg-gray-800 hidden md:block" />
 
             {/* User Profile - Recipe 8/12 */}
-            <div className="relative">
+            <div className="relative hidden md:block">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-3 pl-1 pr-3 py-1 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
@@ -245,10 +245,13 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
 
               <div className="h-px bg-gray-100 dark:bg-gray-800 w-full" />
 
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col gap-2">
+                <div
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 cursor-pointer transition-all active:scale-[0.98]"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/20">
                       {getInitials(user.displayName)}
                     </div>
                     <div>
@@ -256,13 +259,59 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
                       <p className="text-[10px] text-text-secondary dark:text-gray-500">{user.email}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={onLogout}
-                    className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors"
+                  <motion.div
+                    animate={{ rotate: isProfileOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <XMarkIcon className="w-5 h-5" />
-                  </button>
+                    <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                  </motion.div>
                 </div>
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-2 mt-1">
+                        <button
+                          onClick={toggleDarkMode}
+                          className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 transition-all active:scale-[0.98]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-700 flex items-center justify-center shadow-sm">
+                              {isDarkMode ? <SunIcon className="w-4 h-4 text-amber-500" /> : <MoonIcon className="w-4 h-4 text-indigo-600" />}
+                            </div>
+                            <span className="text-sm font-bold text-text-primary dark:text-white">
+                              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                            </span>
+                          </div>
+                          <div className={`w-10 h-5 rounded-full relative transition-colors ${isDarkMode ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                            <motion.div
+                              animate={{ x: isDarkMode ? 20 : 2 }}
+                              className="absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm"
+                            />
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            onLogout();
+                          }}
+                          className="flex items-center gap-3 px-4 py-3 bg-rose-50 dark:bg-rose-900/10 rounded-2xl border border-rose-100 dark:border-rose-900/20 text-rose-500 transition-all active:scale-[0.98]"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
+                            <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                          </div>
+                          <span className="text-sm font-bold">Log Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>

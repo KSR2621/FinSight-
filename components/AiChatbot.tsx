@@ -35,8 +35,19 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
     try {
       const response = await aiService.getChatResponse(userMsg, { transactions, balance });
       setMessages(prev => [...prev, { role: 'bot', text: response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'bot', text: "I'm sorry, I'm having trouble connecting right now." }]);
+    } catch (error: any) {
+      console.error("Chatbot Error:", error);
+      let errorMessage = "I'm sorry, I'm having trouble connecting right now.";
+
+      if (error.message?.includes("AI_CONFIG_ERROR")) {
+        errorMessage = "AI Chat is currently unavailable: API configuration is missing.";
+      } else if (error.message?.includes("401") || error.message?.includes("invalid_api_key")) {
+        errorMessage = "I'm having trouble connecting: The API key seems to be invalid.";
+      } else if (error.message?.includes("429")) {
+        errorMessage = "I'm a bit overwhelmed right now. Please try again in a moment.";
+      }
+
+      setMessages(prev => [...prev, { role: 'bot', text: errorMessage }]);
     } finally {
       setIsTyping(false);
     }
