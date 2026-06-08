@@ -1,6 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4F46E5;
+  --color-secondary: #10B981;
+  --color-background: #F3F4F6;
+  --color-card: #FFFFFF;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-primary-dark: #6366F1;
+  --color-secondary-dark: #34D399;
+}
 
 :root {
   -webkit-tap-highlight-color: transparent;

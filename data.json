@@ -1,4 +1,12 @@
 {
+  "users": [
+    {
+      "_id": "om4prvyo9",
+      "email": "test@example.com",
+      "password": "$2b$10$ZPPtFQ8seBFHw9SM7syibuLk7dsA1v/jLIQQgGQsBQSPho2lnnJqO",
+      "displayName": "Test User"
+    }
+  ],
   "transactions": [
     {
       "description": "Salary",
