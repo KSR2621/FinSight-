@@ -44,7 +44,12 @@ async function loadData() {
 
   try {
     const data = await fs.readFile(DATA_FILE, 'utf-8');
-    const parsed = JSON.parse(data);
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to parse data.json', e);
+    }
     return {
       ...defaultData,
       ...parsed,
