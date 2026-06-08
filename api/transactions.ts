@@ -13,70 +13,71 @@ const authenticate = (req: any) => {
 
 export default async function handler(req: any, res: any) {
   try {
-  await connectDB();
+    await connectDB();
 
-  let user;
-  try {
-    user = authenticate(req);
-  } catch (e) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+    let user;
+    try {
+      user = authenticate(req);
+    } catch (e) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-  const { method, query } = req;
-  const id = query.path ? query.path[0] : null;
+    const { method, query } = req;
+    // Vercel routes params might be in query[path] or similar depending on vercel.json
+    // The rewrite is /api/transactions/:path* -> /api/transactions.ts
+    // For /api/transactions/123, query.path could be "123" or ["123"]
+    const id = Array.isArray(query.path) ? query.path[0] : query.path;
 
-  switch (method) {
-    case 'GET':
-      try {
-        const transactions = await (Transaction as any).find({ userId: user.userId }).sort({ date: -1 });
-        res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch transactions' });
-      }
-      break;
-    case 'POST':
-      try {
-        const newTransaction = new Transaction({ ...req.body, userId: user.userId });
-        await newTransaction.save();
-        res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to create transaction' });
-      }
-      break;
-    case 'PUT':
-      try {
-        const updatedTransaction = await (Transaction as any).findOneAndUpdate(
-          { _id: id, userId: user.userId },
-          req.body,
-          { new: true }
-        );
-        if (updatedTransaction) {
-          res.json({ ...(updatedTransaction as any).toObject(), id: (updatedTransaction as any)._id });
-        } else {
-          res.status(404).json({ error: 'Transaction not found' });
+    switch (method) {
+      case 'GET':
+        try {
+          const transactions = await (Transaction as any).find({ userId: user.userId }).sort({ date: -1 });
+          return res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id })));
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to fetch transactions' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to update transaction' });
-      }
-      break;
-    case 'DELETE':
-      try {
-        const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: user.userId });
-        if (result) {
-          res.status(204).send();
-        } else {
-          res.status(404).json({ error: 'Transaction not found' });
+      case 'POST':
+        try {
+          const newTransaction = new Transaction({ ...req.body, userId: user.userId });
+          await newTransaction.save();
+          return res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to create transaction' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to delete transaction' });
-      }
-      break;
-    default:
-      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-      res.status(405).end(`Method ${method} Not Allowed`);
-  }
+      case 'PUT':
+        try {
+          if (!id) return res.status(400).json({ error: 'ID is required' });
+          const updatedTransaction = await (Transaction as any).findOneAndUpdate(
+            { _id: id, userId: user.userId },
+            req.body,
+            { new: true }
+          );
+          if (updatedTransaction) {
+            return res.json({ ...(updatedTransaction as any).toObject(), id: (updatedTransaction as any)._id });
+          } else {
+            return res.status(404).json({ error: 'Transaction not found' });
+          }
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to update transaction' });
+        }
+      case 'DELETE':
+        try {
+          if (!id) return res.status(400).json({ error: 'ID is required' });
+          const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: user.userId });
+          if (result) {
+            return res.status(204).end();
+          } else {
+            return res.status(404).json({ error: 'Transaction not found' });
+          }
+        } catch (error) {
+          return res.status(500).json({ error: 'Failed to delete transaction' });
+        }
+      default:
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        return res.status(405).json({ error: `Method ${method} Not Allowed` });
+    }
   } catch (error: any) {
     console.error('Transactions API Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }
