@@ -32,11 +32,11 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
     if (emergencyExpense) adjustedBalance -= 2000; // Mock $2000 emergency
 
     const burnRate = adjustedExpense;
-    const runwayMonths = burnRate > 0 ? Math.max(0, adjustedBalance / burnRate) : 99;
+    const runwayMonths = burnRate > 0 ? Math.max(0, adjustedBalance / burnRate) : (adjustedBalance > 0 ? 999 : 0);
     const runwayDays = Math.floor(runwayMonths * 30.44);
 
     return {
-      runwayDays,
+      runwayDays: runwayDays > 10000 ? '∞' : runwayDays,
       runwayMonths: runwayMonths.toFixed(1),
       burnRate,
       balance: adjustedBalance,
@@ -85,7 +85,7 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
 
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <motion.div 
-                  key={stats.runwayDays}
+                  key={String(stats.runwayDays)}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className={`text-7xl font-bold font-mono tracking-tighter ${stats.isCritical ? 'text-rose-500' : 'text-white'}`}

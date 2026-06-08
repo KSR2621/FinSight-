@@ -11,24 +11,11 @@ interface HeaderProps {
   currency: Currency;
   onCurrencyChange: (currency: Currency) => void;
   onAddTransaction: () => void;
-  onLogout: () => void;
+  onOpenProfile: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, currency, onCurrencyChange, onAddTransaction, onOpenProfile }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isProfileOpen) return;
-    if (typeof window === 'undefined') return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isProfileOpen]);
 
   const navItems = [
     { label: 'Transactions', path: '/transactions' },
@@ -141,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
             {/* User Profile - Recipe 8/12 */}
             <div className="relative hidden md:block">
               <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                onClick={onOpenProfile}
                 className="flex items-center gap-2 pl-1 pr-2 sm:pr-3 py-1 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg sm:rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
               >
                 <div className="w-7 sm:w-8 h-7 sm:h-8 rounded-lg sm:rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
@@ -166,46 +153,6 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
         </div>
       </div>
 
-      <AnimatePresence>
-        {isProfileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          >
-            <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-md" onClick={() => setIsProfileOpen(false)} />
-            <div className="relative w-full max-w-xs bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 py-6 px-2 z-50">
-              <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-2">
-                <p className="text-xs font-bold text-text-primary dark:text-white truncate">{user.displayName || 'John Doe'}</p>
-                <p className="text-[10px] text-text-secondary dark:text-gray-500 truncate">{user.email}</p>
-              </div>
-              <button
-                onClick={toggleDarkMode}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm text-text-primary dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors font-bold"
-              >
-                <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
-                <div className={`w-9 h-5 rounded-full relative transition-colors ${isDarkMode ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                  <motion.div
-                    animate={{ x: isDarkMode ? 18 : 2 }}
-                    className="absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow-sm"
-                  />
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  setIsMobileMenuOpen(false);
-                  onLogout();
-                }}
-                className="w-full text-left px-4 py-3 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors font-bold"
-              >
-                Log Out
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Mobile Navigation */}
       <AnimatePresence>
@@ -250,7 +197,10 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
 
               <div className="flex flex-col gap-2">
                 <div
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenProfile();
+                  }}
                   className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 cursor-pointer transition-all active:scale-[0.98]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -262,13 +212,9 @@ const Header: React.FC<HeaderProps> = ({ user, isDarkMode, toggleDarkMode, curre
                       <p className="text-[9px] text-text-secondary dark:text-gray-500 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <motion.div
-                    animate={{ rotate: isProfileOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-shrink-0"
-                  >
+                  <div className="flex-shrink-0">
                     <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-                  </motion.div>
+                  </div>
                 </div>
 
               </div>

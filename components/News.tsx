@@ -267,37 +267,6 @@ const News: React.FC = () => {
         </div>
       )}
 
-      {/* Newsletter Section */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        className="bg-[#0a0a0a] p-12 rounded-[3rem] text-center relative overflow-hidden mt-12"
-      >
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-        
-        <div className="relative z-10 max-w-2xl mx-auto">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/5 rounded-2xl mb-8 border border-white/10">
-            <NewspaperIcon className="w-8 h-8 text-white" />
-          </div>
-          <h3 className="text-3xl font-bold text-white mb-4 tracking-tight uppercase italic">The Weekly Horizon</h3>
-          <p className="text-gray-400 mb-10 leading-relaxed text-sm">
-            Join 50,000+ investors receiving our curated weekend briefing on global markets, emerging tech, and wealth strategies.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input 
-              type="email" 
-              placeholder="Enter your professional email" 
-              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors font-mono text-sm"
-            />
-            <button className="bg-white text-black px-8 py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all duration-300 text-sm">
-              Subscribe
-            </button>
-          </div>
-          <p className="text-[10px] text-gray-600 mt-6 font-mono uppercase tracking-widest">No spam. Only intelligence. Unsubscribe anytime.</p>
-        </div>
-      </motion.div>
     </div>
   );
 };

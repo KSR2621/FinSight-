@@ -1,7 +1,7 @@
 
 import React, { useMemo, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Transaction, TransactionType, Currency, CURRENCY_SYMBOLS, Bill, Budget, FinancialHealthScore, User } from '../types';
+import { Transaction, TransactionType, Currency, CURRENCY_SYMBOLS, Bill, Budget, FinancialHealthScore, User, PortfolioAsset } from '../types';
 import CategoryPieChart from './CategoryPieChart';
 import ExpenseTrendChart from './ExpenseTrendChart';
 import FinancialStressTest from './FinancialStressTest';
@@ -22,17 +22,20 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
   const [bills, setBills] = useState<Bill[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [healthScore, setHealthScore] = useState<FinancialHealthScore | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [billsData, budgetsData, healthData] = await Promise.all([
+      const [billsData, budgetsData, healthData, portfolioData] = await Promise.all([
         api.getBills(user.uid),
         api.getBudgets(user.uid),
-        api.getHealthScore()
+        api.getHealthScore(),
+        api.getPortfolio(user.uid)
       ]);
       setBills(billsData);
       setBudgets(budgetsData);
       setHealthScore(healthData);
+      setPortfolio(portfolioData);
     };
     fetchData();
   }, []);
@@ -50,9 +53,10 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
       },
       { totalIncome: 0, totalExpenses: 0, balance: 0 }
     );
-    // Mock net worth calculation (balance + some mock assets)
-    return { ...stats, netWorth: stats.balance + 250000 };
-  }, [transactions]);
+
+    const portfolioValue = portfolio.reduce((acc, asset) => acc + (asset.quantity * asset.currentPrice), 0);
+    return { ...stats, netWorth: stats.balance + portfolioValue };
+  }, [transactions, portfolio]);
 
   const expenseTransactions = useMemo(() => transactions.filter(t => t.type === TransactionType.EXPENSE), [transactions]);
 

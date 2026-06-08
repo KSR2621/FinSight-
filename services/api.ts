@@ -16,19 +16,6 @@ const getLocal = <T>(userId: string, key: string): T[] => {
     const fullKey = getScopedKey(userId, key);
     const data = localStorage.getItem(fullKey);
     if (!data) {
-      // Return initial/default data for specific keys if they don't exist
-      if (key === STORAGE_KEYS.BILLS) {
-        return [
-          { id: '1', name: 'Electricity Bill', amount: 1200, dueDate: '2026-04-05', isPaid: false, category: 'Utilities' } as any,
-          { id: '2', name: 'Internet', amount: 800, dueDate: '2026-04-10', isPaid: true, category: 'Utilities' } as any,
-        ];
-      }
-      if (key === STORAGE_KEYS.PORTFOLIO) {
-        return [
-          { id: '1', symbol: 'RELIANCE', name: 'Reliance Industries', quantity: 10, averagePrice: 2400, currentPrice: 2850, type: 'stock' } as any,
-          { id: '2', symbol: 'BTC', name: 'Bitcoin', quantity: 0.05, averagePrice: 45000, currentPrice: 65000, type: 'crypto' } as any,
-        ];
-      }
       return [];
     }
     return JSON.parse(data);
@@ -83,17 +70,17 @@ export const api = {
 
   getHealthScore: async (): Promise<FinancialHealthScore> => {
     return {
-      score: 78,
+      score: 0,
       breakdown: {
-        savings: 85,
-        spending: 70,
-        investments: 65,
-        debt: 90
+        savings: 0,
+        spending: 0,
+        investments: 0,
+        debt: 0
       },
       suggestions: [
-        "You can save ₹2,000 more this month by reducing food delivery.",
-        "Consider increasing your SIP in Nifty 50 Index Fund.",
-        "Anomaly detected: Unusual spending at 'Apple Store' flagged."
+        "Add transactions to see your financial health score.",
+        "Set up budgets to track your spending habits.",
+        "Add savings goals to plan for your future."
       ]
     };
   },
