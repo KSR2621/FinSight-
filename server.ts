@@ -27,7 +27,8 @@ const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 async function loadData() {
-  const defaultData = {
+  const defaultData: any = {
+    users: [],
     transactions: [],
     budgets: [],
     goals: [],
@@ -47,6 +48,7 @@ async function loadData() {
     return {
       ...defaultData,
       ...parsed,
+      users: Array.isArray(parsed.users) ? parsed.users : [],
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       budgets: Array.isArray(parsed.budgets) ? parsed.budgets : [],
       goals: Array.isArray(parsed.goals) ? parsed.goals : [],
@@ -75,11 +77,15 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
+let isMongoConnected = false;
+
 async function startServer() {
   try {
     await connectDB();
+    isMongoConnected = true;
   } catch (error) {
     console.error('Initial MongoDB connection failed:', error);
+    isMongoConnected = false;
   }
 
   const app = express();
@@ -98,16 +104,40 @@ async function startServer() {
   app.post('/api/auth/signup', async (req, res) => {
     try {
       const { email, password, displayName } = req.body;
-      const existingUser = await (User as any).findOne({ email });
-      if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = new User({ email, password: hashedPassword, displayName });
-      await user.save();
+      if (isMongoConnected) {
+        const existingUser = await (User as any).findOne({ email });
+        if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
-      const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-      res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ email, password: hashedPassword, displayName });
+        await user.save();
+
+        const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+        return res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+      } else {
+        // Fallback to local data
+        const data = await loadData();
+        if (data.users.find((u: any) => u.email === email)) {
+          return res.status(400).json({ error: 'User already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = {
+          _id: Math.random().toString(36).substr(2, 9),
+          email,
+          password: hashedPassword,
+          displayName
+        };
+
+        data.users.push(newUser);
+        await saveData(data);
+
+        const token = jwt.sign({ userId: newUser._id, email: newUser.email }, JWT_SECRET);
+        return res.status(201).json({ token, user: { uid: newUser._id, email: newUser.email, displayName: newUser.displayName } });
+      }
     } catch (error) {
+      console.error('Signup error:', error);
       res.status(500).json({ error: 'Failed to create user' });
     }
   });
@@ -115,15 +145,30 @@ async function startServer() {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await (User as any).findOne({ email });
-      if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+      if (isMongoConnected) {
+        const user = await (User as any).findOne({ email });
+        if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-      const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-      res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+
+        const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+        return res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+      } else {
+        // Fallback to local data
+        const data = await loadData();
+        const user = data.users.find((u: any) => u.email === email);
+        if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+
+        const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+        return res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+      }
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({ error: 'Failed to login' });
     }
   });
@@ -131,8 +176,16 @@ async function startServer() {
   // Transactions API
   app.get('/api/transactions', authenticateToken, async (req: any, res) => {
     try {
-      const transactions = await (Transaction as any).find({ userId: req.user.userId }).sort({ date: -1 });
-      res.json(transactions.map(t => ({ ...t.toObject(), id: t._id })));
+      if (isMongoConnected) {
+        const transactions = await (Transaction as any).find({ userId: req.user.userId }).sort({ date: -1 });
+        res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id })));
+      } else {
+        const data = await loadData();
+        const transactions = data.transactions
+          .filter((t: any) => t.userId === req.user.userId)
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        res.json(transactions);
+      }
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch transactions' });
     }
@@ -140,9 +193,21 @@ async function startServer() {
 
   app.post('/api/transactions', authenticateToken, async (req: any, res) => {
     try {
-      const newTransaction = new Transaction({ ...req.body, userId: req.user.userId });
-      await newTransaction.save();
-      res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
+      if (isMongoConnected) {
+        const newTransaction = new Transaction({ ...req.body, userId: req.user.userId });
+        await newTransaction.save();
+        res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
+      } else {
+        const data = await loadData();
+        const newTransaction = {
+          ...req.body,
+          id: Math.random().toString(36).substr(2, 9),
+          userId: req.user.userId
+        };
+        data.transactions.push(newTransaction);
+        await saveData(data);
+        res.status(201).json(newTransaction);
+      }
     } catch (error) {
       res.status(500).json({ error: 'Failed to create transaction' });
     }
@@ -151,15 +216,27 @@ async function startServer() {
   app.put('/api/transactions/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updatedTransaction = await (Transaction as any).findOneAndUpdate(
-        { _id: id, userId: req.user.userId },
-        req.body,
-        { new: true }
-      );
-      if (updatedTransaction) {
-        res.json({ ...updatedTransaction.toObject(), id: updatedTransaction._id });
+      if (isMongoConnected) {
+        const updatedTransaction = await (Transaction as any).findOneAndUpdate(
+          { _id: id, userId: req.user.userId },
+          req.body,
+          { new: true }
+        );
+        if (updatedTransaction) {
+          res.json({ ...updatedTransaction.toObject(), id: updatedTransaction._id });
+        } else {
+          res.status(404).json({ error: 'Transaction not found' });
+        }
       } else {
-        res.status(404).json({ error: 'Transaction not found' });
+        const data = await loadData();
+        const index = data.transactions.findIndex((t: any) => t.id === id && t.userId === req.user.userId);
+        if (index !== -1) {
+          data.transactions[index] = { ...data.transactions[index], ...req.body };
+          await saveData(data);
+          res.json(data.transactions[index]);
+        } else {
+          res.status(404).json({ error: 'Transaction not found' });
+        }
       }
     } catch (error) {
       res.status(500).json({ error: 'Failed to update transaction' });
@@ -169,11 +246,23 @@ async function startServer() {
   app.delete('/api/transactions/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: req.user.userId });
-      if (result) {
-        res.status(204).send();
+      if (isMongoConnected) {
+        const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: req.user.userId });
+        if (result) {
+          res.status(204).send();
+        } else {
+          res.status(404).json({ error: 'Transaction not found' });
+        }
       } else {
-        res.status(404).json({ error: 'Transaction not found' });
+        const data = await loadData();
+        const initialLength = data.transactions.length;
+        data.transactions = data.transactions.filter((t: any) => !(t.id === id && t.userId === req.user.userId));
+        if (data.transactions.length < initialLength) {
+          await saveData(data);
+          res.status(204).send();
+        } else {
+          res.status(404).json({ error: 'Transaction not found' });
+        }
       }
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete transaction' });
@@ -411,6 +500,18 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    app.get('*', async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        let template = await fs.readFile(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
