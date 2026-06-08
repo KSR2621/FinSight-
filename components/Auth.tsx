@@ -34,46 +34,31 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
         
         setIsLoading(true);
 
-        // Simulate network delay
-        setTimeout(() => {
-            try {
-                const usersJSON = localStorage.getItem('finsight_users');
-                const users: (User & { password?: string })[] = usersJSON ? JSON.parse(usersJSON) : [];
+        try {
+            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+            const body = isLogin ? { email, password } : { email, password, displayName: name };
 
-                if (isLogin) {
-                    const user = users.find(u => u.email === email && u.password === password);
-                    if (user) {
-                        const { password, ...userWithoutPassword } = user;
-                        localStorage.setItem('finsight_user', JSON.stringify(userWithoutPassword));
-                        onAuthSuccess(userWithoutPassword);
-                    } else {
-                        setError('Invalid email or password.');
-                    }
-                } else {
-                    if (users.some(u => u.email === email)) {
-                        setError('An account with this email already exists.');
-                    } else {
-                        const newUser: User & { password?: string } = {
-                            uid: 'user_' + Math.random().toString(36).substr(2, 9),
-                            email: email,
-                            displayName: name,
-                            password: password
-                        };
-                        users.push(newUser);
-                        localStorage.setItem('finsight_users', JSON.stringify(users));
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
 
-                        const { password: _, ...userWithoutPassword } = newUser;
-                        localStorage.setItem('finsight_user', JSON.stringify(userWithoutPassword));
-                        onAuthSuccess(userWithoutPassword);
-                    }
-                }
-            } catch (err) {
-                setError('An unexpected error occurred. Please try again.');
-                console.error(err);
-            } finally {
-                setIsLoading(false);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Authentication failed');
             }
-        }, 800);
+
+            localStorage.setItem('finsight_token', data.token);
+            localStorage.setItem('finsight_user', JSON.stringify(data.user));
+            onAuthSuccess(data.user);
+        } catch (err: any) {
+            setError(err.message || 'An unexpected error occurred. Please try again.');
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

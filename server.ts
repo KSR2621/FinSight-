@@ -7,8 +7,20 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import Parser from 'rss-parser';
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import connectDB from './lib/mongodb.ts';
+import { User } from './models/User.ts';
+import { Transaction } from './models/Transaction.ts';
+import { Budget } from './models/Budget.ts';
+import { Goal } from './models/Goal.ts';
+import { Bill } from './models/Bill.ts';
+import { PortfolioAsset } from './models/PortfolioAsset.ts';
 
 dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,7 +62,22 @@ async function saveData(data: any) {
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.status(401).json({ error: 'Access denied' });
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    req.user = user;
+    next();
+  });
+};
+
 async function startServer() {
+  await connectDB();
+
   const app = express();
   const PORT = 3000;
 
@@ -63,121 +90,214 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // Transactions API
-  app.get('/api/transactions', async (req, res) => {
-    const data = await loadData();
-    res.json(data.transactions);
-  });
+  // Auth Routes
+  app.post('/api/auth/signup', async (req, res) => {
+    try {
+      const { email, password, displayName } = req.body;
+      const existingUser = await User.findOne({ email });
+      if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
-  app.post('/api/transactions', async (req, res) => {
-    const data = await loadData();
-    const newTransaction = { ...req.body, id: Math.random().toString(36).substr(2, 9) };
-    data.transactions.push(newTransaction);
-    await saveData(data);
-    res.status(201).json(newTransaction);
-  });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = new User({ email, password: hashedPassword, displayName });
+      await user.save();
 
-  app.put('/api/transactions/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    const index = data.transactions.findIndex((t: any) => t.id === id);
-    if (index !== -1) {
-      data.transactions[index] = { ...data.transactions[index], ...req.body };
-      await saveData(data);
-      res.json(data.transactions[index]);
-    } else {
-      res.status(404).json({ error: 'Transaction not found' });
+      const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+      res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create user' });
     }
   });
 
-  app.delete('/api/transactions/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    data.transactions = data.transactions.filter((t: any) => t.id !== id);
-    await saveData(data);
-    res.status(204).send();
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ email });
+      if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+
+      const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+      res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to login' });
+    }
+  });
+
+  // Transactions API
+  app.get('/api/transactions', authenticateToken, async (req: any, res) => {
+    try {
+      const transactions = await Transaction.find({ userId: req.user.userId }).sort({ date: -1 });
+      res.json(transactions.map(t => ({ ...t.toObject(), id: t._id })));
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
+  app.post('/api/transactions', authenticateToken, async (req: any, res) => {
+    try {
+      const newTransaction = new Transaction({ ...req.body, userId: req.user.userId });
+      await newTransaction.save();
+      res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create transaction' });
+    }
+  });
+
+  app.put('/api/transactions/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updatedTransaction = await Transaction.findOneAndUpdate(
+        { _id: id, userId: req.user.userId },
+        req.body,
+        { new: true }
+      );
+      if (updatedTransaction) {
+        res.json({ ...updatedTransaction.toObject(), id: updatedTransaction._id });
+      } else {
+        res.status(404).json({ error: 'Transaction not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update transaction' });
+    }
+  });
+
+  app.delete('/api/transactions/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const result = await Transaction.findOneAndDelete({ _id: id, userId: req.user.userId });
+      if (result) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: 'Transaction not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete transaction' });
+    }
   });
 
   // Budgets API
-  app.get('/api/budgets', async (req, res) => {
-    const data = await loadData();
-    res.json(data.budgets);
-  });
-
-  app.post('/api/budgets', async (req, res) => {
-    const data = await loadData();
-    const newBudget = { ...req.body, id: Math.random().toString(36).substr(2, 9) };
-    data.budgets.push(newBudget);
-    await saveData(data);
-    res.status(201).json(newBudget);
-  });
-
-  app.put('/api/budgets/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    const index = data.budgets.findIndex((b: any) => b.id === id);
-    if (index !== -1) {
-      data.budgets[index] = { ...data.budgets[index], ...req.body };
-      await saveData(data);
-      res.json(data.budgets[index]);
-    } else {
-      res.status(404).json({ error: 'Budget not found' });
+  app.get('/api/budgets', authenticateToken, async (req: any, res) => {
+    try {
+      const budgets = await Budget.find({ userId: req.user.userId });
+      res.json(budgets.map(b => ({ ...b.toObject(), id: b._id })));
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch budgets' });
     }
   });
 
-  app.delete('/api/budgets/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    data.budgets = data.budgets.filter((b: any) => b.id !== id);
-    await saveData(data);
-    res.status(204).send();
+  app.post('/api/budgets', authenticateToken, async (req: any, res) => {
+    try {
+      const newBudget = new Budget({ ...req.body, userId: req.user.userId });
+      await newBudget.save();
+      res.status(201).json({ ...newBudget.toObject(), id: newBudget._id });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create budget' });
+    }
+  });
+
+  app.put('/api/budgets/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updatedBudget = await Budget.findOneAndUpdate(
+        { _id: id, userId: req.user.userId },
+        req.body,
+        { new: true }
+      );
+      if (updatedBudget) {
+        res.json({ ...updatedBudget.toObject(), id: updatedBudget._id });
+      } else {
+        res.status(404).json({ error: 'Budget not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update budget' });
+    }
+  });
+
+  app.delete('/api/budgets/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const result = await Budget.findOneAndDelete({ _id: id, userId: req.user.userId });
+      if (result) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: 'Budget not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete budget' });
+    }
   });
 
   // Goals API
-  app.get('/api/goals', async (req, res) => {
-    const data = await loadData();
-    res.json(data.goals);
-  });
-
-  app.post('/api/goals', async (req, res) => {
-    const data = await loadData();
-    const newGoal = { ...req.body, id: Math.random().toString(36).substr(2, 9) };
-    data.goals.push(newGoal);
-    await saveData(data);
-    res.status(201).json(newGoal);
-  });
-
-  app.put('/api/goals/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    const index = data.goals.findIndex((g: any) => g.id === id);
-    if (index !== -1) {
-      data.goals[index] = { ...data.goals[index], ...req.body };
-      await saveData(data);
-      res.json(data.goals[index]);
-    } else {
-      res.status(404).json({ error: 'Goal not found' });
+  app.get('/api/goals', authenticateToken, async (req: any, res) => {
+    try {
+      const goals = await Goal.find({ userId: req.user.userId });
+      res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch goals' });
     }
   });
 
-  app.delete('/api/goals/:id', async (req, res) => {
-    const { id } = req.params;
-    const data = await loadData();
-    data.goals = data.goals.filter((g: any) => g.id !== id);
-    await saveData(data);
-    res.status(204).send();
+  app.post('/api/goals', authenticateToken, async (req: any, res) => {
+    try {
+      const newGoal = new Goal({ ...req.body, userId: req.user.userId });
+      await newGoal.save();
+      res.status(201).json({ ...newGoal.toObject(), id: newGoal._id });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create goal' });
+    }
+  });
+
+  app.put('/api/goals/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updatedGoal = await Goal.findOneAndUpdate(
+        { _id: id, userId: req.user.userId },
+        req.body,
+        { new: true }
+      );
+      if (updatedGoal) {
+        res.json({ ...updatedGoal.toObject(), id: updatedGoal._id });
+      } else {
+        res.status(404).json({ error: 'Goal not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update goal' });
+    }
+  });
+
+  app.delete('/api/goals/:id', authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const result = await Goal.findOneAndDelete({ _id: id, userId: req.user.userId });
+      if (result) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: 'Goal not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete goal' });
+    }
   });
 
   // Bills API
-  app.get('/api/bills', async (req, res) => {
-    const data = await loadData();
-    res.json(data.bills);
+  app.get('/api/bills', authenticateToken, async (req: any, res) => {
+    try {
+      const bills = await Bill.find({ userId: req.user.userId });
+      res.json(bills.map(b => ({ ...b.toObject(), id: b._id })));
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch bills' });
+    }
   });
 
   // Portfolio API
-  app.get('/api/portfolio', async (req, res) => {
-    const data = await loadData();
-    res.json(data.portfolio);
+  app.get('/api/portfolio', authenticateToken, async (req: any, res) => {
+    try {
+      const portfolio = await PortfolioAsset.find({ userId: req.user.userId });
+      res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch portfolio' });
+    }
   });
 
   // News API with Caching

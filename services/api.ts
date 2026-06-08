@@ -33,29 +33,79 @@ const setLocal = (userId: string, key: string, data: any) => {
   }
 };
 
+const getAuthToken = () => localStorage.getItem('finsight_token');
+
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
+  const response = await fetch(url, { ...options, headers });
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      // Handle unauthorized
+    }
+    const error = await response.json();
+    throw new Error(error.error || 'API request failed');
+  }
+  if (response.status === 204) return null;
+  return response.json();
+};
+
+const API_BASE = '/api';
+
 export const api = {
   // Transactions
   getTransactions: async (userId: string): Promise<Transaction[]> => {
-    return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+    try {
+      return await fetchWithAuth(`${API_BASE}/transactions`);
+    } catch (e) {
+      console.warn("Using offline transactions", e);
+      return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+    }
   },
 
   addTransaction: async (userId: string, t: Omit<Transaction, 'id'>): Promise<Transaction> => {
-    const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
-    const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-    setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, newTransaction]);
-    return newTransaction;
+    try {
+      const newTransaction = await fetchWithAuth(`${API_BASE}/transactions`, {
+        method: 'POST',
+        body: JSON.stringify(t),
+      });
+      return newTransaction;
+    } catch (e) {
+      const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, newTransaction]);
+      return newTransaction;
+    }
   },
 
   updateTransaction: async (userId: string, id: string, t: Partial<Transaction>): Promise<Transaction> => {
-    const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-    const updated = current.map(item => item.id === id ? { ...item, ...t } : item);
-    setLocal(userId, STORAGE_KEYS.TRANSACTIONS, updated);
-    return updated.find(item => item.id === id) as Transaction;
+    try {
+      return await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(t),
+      });
+    } catch (e) {
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      const updated = current.map(item => item.id === id ? { ...item, ...t } : item);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, updated);
+      return updated.find(item => item.id === id) as Transaction;
+    }
   },
 
   deleteTransaction: async (userId: string, id: string): Promise<void> => {
-    const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-    setLocal(userId, STORAGE_KEYS.TRANSACTIONS, current.filter(item => item.id !== id));
+    try {
+      await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, current.filter(item => item.id !== id));
+    }
   },
 
   // AI Features
@@ -69,9 +119,18 @@ export const api = {
   },
 
   getHealthScore: async (userId: string): Promise<FinancialHealthScore> => {
-    const transactions = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
-    const budgets = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
-    const portfolio = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+    let transactions, budgets, portfolio;
+    try {
+      [transactions, budgets, portfolio] = await Promise.all([
+        api.getTransactions(userId),
+        api.getBudgets(userId),
+        api.getPortfolio(userId)
+      ]);
+    } catch (e) {
+      transactions = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      budgets = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      portfolio = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+    }
 
     const now = new Date();
     const last30Days = transactions.filter(t => {
@@ -141,59 +200,115 @@ export const api = {
 
   // Budgets
   getBudgets: async (userId: string): Promise<Budget[]> => {
-    return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+    try {
+      return await fetchWithAuth(`${API_BASE}/budgets`);
+    } catch (e) {
+      return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+    }
   },
 
   addBudget: async (userId: string, b: Omit<Budget, 'id'>): Promise<Budget> => {
-    const newBudget = { ...b, id: Math.random().toString(36).substr(2, 9) } as Budget;
-    const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
-    setLocal(userId, STORAGE_KEYS.BUDGETS, [...current, newBudget]);
-    return newBudget;
+    try {
+      return await fetchWithAuth(`${API_BASE}/budgets`, {
+        method: 'POST',
+        body: JSON.stringify(b),
+      });
+    } catch (e) {
+      const newBudget = { ...b, id: Math.random().toString(36).substr(2, 9) } as Budget;
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, [...current, newBudget]);
+      return newBudget;
+    }
   },
 
   updateBudget: async (userId: string, id: string, b: Partial<Budget>): Promise<Budget> => {
-    const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
-    const updated = current.map(item => item.id === id ? { ...item, ...b } : item);
-    setLocal(userId, STORAGE_KEYS.BUDGETS, updated);
-    return updated.find(item => item.id === id) as Budget;
+    try {
+      return await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(b),
+      });
+    } catch (e) {
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      const updated = current.map(item => item.id === id ? { ...item, ...b } : item);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, updated);
+      return updated.find(item => item.id === id) as Budget;
+    }
   },
 
   deleteBudget: async (userId: string, id: string): Promise<void> => {
-    const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
-    setLocal(userId, STORAGE_KEYS.BUDGETS, current.filter(item => item.id !== id));
+    try {
+      await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, current.filter(item => item.id !== id));
+    }
   },
 
   // Goals
   getGoals: async (userId: string): Promise<Goal[]> => {
-    return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+    try {
+      return await fetchWithAuth(`${API_BASE}/goals`);
+    } catch (e) {
+      return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+    }
   },
 
   addGoal: async (userId: string, g: Omit<Goal, 'id'>): Promise<Goal> => {
-    const newGoal = { ...g, id: Math.random().toString(36).substr(2, 9) } as Goal;
-    const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
-    setLocal(userId, STORAGE_KEYS.GOALS, [...current, newGoal]);
-    return newGoal;
+    try {
+      return await fetchWithAuth(`${API_BASE}/goals`, {
+        method: 'POST',
+        body: JSON.stringify(g),
+      });
+    } catch (e) {
+      const newGoal = { ...g, id: Math.random().toString(36).substr(2, 9) } as Goal;
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      setLocal(userId, STORAGE_KEYS.GOALS, [...current, newGoal]);
+      return newGoal;
+    }
   },
 
   updateGoal: async (userId: string, id: string, g: Partial<Goal>): Promise<Goal> => {
-    const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
-    const updated = current.map(item => item.id === id ? { ...item, ...g } : item);
-    setLocal(userId, STORAGE_KEYS.GOALS, updated);
-    return updated.find(item => item.id === id) as Goal;
+    try {
+      return await fetchWithAuth(`${API_BASE}/goals/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(g),
+      });
+    } catch (e) {
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      const updated = current.map(item => item.id === id ? { ...item, ...g } : item);
+      setLocal(userId, STORAGE_KEYS.GOALS, updated);
+      return updated.find(item => item.id === id) as Goal;
+    }
   },
 
   deleteGoal: async (userId: string, id: string): Promise<void> => {
-    const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
-    setLocal(userId, STORAGE_KEYS.GOALS, current.filter(item => item.id !== id));
+    try {
+      await fetchWithAuth(`${API_BASE}/goals/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      setLocal(userId, STORAGE_KEYS.GOALS, current.filter(item => item.id !== id));
+    }
   },
 
   // Bills
   getBills: async (userId: string): Promise<Bill[]> => {
-    return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+    try {
+      return await fetchWithAuth(`${API_BASE}/bills`);
+    } catch (e) {
+      return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+    }
   },
 
   // Portfolio
   getPortfolio: async (userId: string): Promise<PortfolioAsset[]> => {
-    return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+    try {
+      return await fetchWithAuth(`${API_BASE}/portfolio`);
+    } catch (e) {
+      return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+    }
   }
 };

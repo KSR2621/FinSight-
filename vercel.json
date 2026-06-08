@@ -1,5 +1,12 @@
 {
   "rewrites": [
+    { "source": "/api/news", "destination": "/api/news.ts" },
+    { "source": "/api/auth/:path*", "destination": "/api/auth.ts" },
+    { "source": "/api/transactions/:path*", "destination": "/api/transactions.ts" },
+    { "source": "/api/budgets/:path*", "destination": "/api/budgets.ts" },
+    { "source": "/api/goals/:path*", "destination": "/api/goals.ts" },
+    { "source": "/api/bills/:path*", "destination": "/api/bills.ts" },
+    { "source": "/api/portfolio/:path*", "destination": "/api/portfolio.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
