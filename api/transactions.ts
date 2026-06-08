@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import connectDB from '../lib/mongodb.ts';
-import { Transaction } from '../models/Transaction.ts';
+import connectDB from '../lib/mongodb';
+import { Transaction } from '../models/Transaction';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
@@ -12,6 +12,7 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  try {
   await connectDB();
 
   let user;
@@ -27,8 +28,8 @@ export default async function handler(req: any, res: any) {
   switch (method) {
     case 'GET':
       try {
-        const transactions = await Transaction.find({ userId: user.userId }).sort({ date: -1 });
-        res.json(transactions.map(t => ({ ...t.toObject(), id: t._id })));
+        const transactions = await (Transaction as any).find({ userId: user.userId }).sort({ date: -1 });
+        res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id })));
       } catch (error) {
         res.status(500).json({ error: 'Failed to fetch transactions' });
       }
@@ -44,13 +45,13 @@ export default async function handler(req: any, res: any) {
       break;
     case 'PUT':
       try {
-        const updatedTransaction = await Transaction.findOneAndUpdate(
+        const updatedTransaction = await (Transaction as any).findOneAndUpdate(
           { _id: id, userId: user.userId },
           req.body,
           { new: true }
         );
         if (updatedTransaction) {
-          res.json({ ...updatedTransaction.toObject(), id: updatedTransaction._id });
+          res.json({ ...(updatedTransaction as any).toObject(), id: (updatedTransaction as any)._id });
         } else {
           res.status(404).json({ error: 'Transaction not found' });
         }
@@ -60,7 +61,7 @@ export default async function handler(req: any, res: any) {
       break;
     case 'DELETE':
       try {
-        const result = await Transaction.findOneAndDelete({ _id: id, userId: user.userId });
+        const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: user.userId });
         if (result) {
           res.status(204).send();
         } else {
@@ -73,5 +74,9 @@ export default async function handler(req: any, res: any) {
     default:
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
       res.status(405).end(`Method ${method} Not Allowed`);
+  }
+  } catch (error: any) {
+    console.error('Transactions API Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

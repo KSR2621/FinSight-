@@ -10,13 +10,13 @@ import Parser from 'rss-parser';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import connectDB from './lib/mongodb.ts';
-import { User } from './models/User.ts';
-import { Transaction } from './models/Transaction.ts';
-import { Budget } from './models/Budget.ts';
-import { Goal } from './models/Goal.ts';
-import { Bill } from './models/Bill.ts';
-import { PortfolioAsset } from './models/PortfolioAsset.ts';
+import connectDB from './lib/mongodb';
+import { User } from './models/User';
+import { Transaction } from './models/Transaction';
+import { Budget } from './models/Budget';
+import { Goal } from './models/Goal';
+import { Bill } from './models/Bill';
+import { PortfolioAsset } from './models/PortfolioAsset';
 
 dotenv.config();
 
@@ -76,7 +76,11 @@ const authenticateToken = (req: any, res: any, next: any) => {
 };
 
 async function startServer() {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error('Initial MongoDB connection failed:', error);
+  }
 
   const app = express();
   const PORT = 3000;
@@ -94,7 +98,7 @@ async function startServer() {
   app.post('/api/auth/signup', async (req, res) => {
     try {
       const { email, password, displayName } = req.body;
-      const existingUser = await User.findOne({ email });
+      const existingUser = await (User as any).findOne({ email });
       if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -111,7 +115,7 @@ async function startServer() {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await User.findOne({ email });
+      const user = await (User as any).findOne({ email });
       if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -127,7 +131,7 @@ async function startServer() {
   // Transactions API
   app.get('/api/transactions', authenticateToken, async (req: any, res) => {
     try {
-      const transactions = await Transaction.find({ userId: req.user.userId }).sort({ date: -1 });
+      const transactions = await (Transaction as any).find({ userId: req.user.userId }).sort({ date: -1 });
       res.json(transactions.map(t => ({ ...t.toObject(), id: t._id })));
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch transactions' });
@@ -147,7 +151,7 @@ async function startServer() {
   app.put('/api/transactions/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updatedTransaction = await Transaction.findOneAndUpdate(
+      const updatedTransaction = await (Transaction as any).findOneAndUpdate(
         { _id: id, userId: req.user.userId },
         req.body,
         { new: true }
@@ -165,7 +169,7 @@ async function startServer() {
   app.delete('/api/transactions/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const result = await Transaction.findOneAndDelete({ _id: id, userId: req.user.userId });
+      const result = await (Transaction as any).findOneAndDelete({ _id: id, userId: req.user.userId });
       if (result) {
         res.status(204).send();
       } else {
@@ -179,7 +183,7 @@ async function startServer() {
   // Budgets API
   app.get('/api/budgets', authenticateToken, async (req: any, res) => {
     try {
-      const budgets = await Budget.find({ userId: req.user.userId });
+      const budgets = await (Budget as any).find({ userId: req.user.userId });
       res.json(budgets.map(b => ({ ...b.toObject(), id: b._id })));
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch budgets' });
@@ -199,7 +203,7 @@ async function startServer() {
   app.put('/api/budgets/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updatedBudget = await Budget.findOneAndUpdate(
+      const updatedBudget = await (Budget as any).findOneAndUpdate(
         { _id: id, userId: req.user.userId },
         req.body,
         { new: true }
@@ -217,7 +221,7 @@ async function startServer() {
   app.delete('/api/budgets/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const result = await Budget.findOneAndDelete({ _id: id, userId: req.user.userId });
+      const result = await (Budget as any).findOneAndDelete({ _id: id, userId: req.user.userId });
       if (result) {
         res.status(204).send();
       } else {
@@ -231,7 +235,7 @@ async function startServer() {
   // Goals API
   app.get('/api/goals', authenticateToken, async (req: any, res) => {
     try {
-      const goals = await Goal.find({ userId: req.user.userId });
+      const goals = await (Goal as any).find({ userId: req.user.userId });
       res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch goals' });
@@ -251,7 +255,7 @@ async function startServer() {
   app.put('/api/goals/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updatedGoal = await Goal.findOneAndUpdate(
+      const updatedGoal = await (Goal as any).findOneAndUpdate(
         { _id: id, userId: req.user.userId },
         req.body,
         { new: true }
@@ -269,7 +273,7 @@ async function startServer() {
   app.delete('/api/goals/:id', authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const result = await Goal.findOneAndDelete({ _id: id, userId: req.user.userId });
+      const result = await (Goal as any).findOneAndDelete({ _id: id, userId: req.user.userId });
       if (result) {
         res.status(204).send();
       } else {
@@ -283,7 +287,7 @@ async function startServer() {
   // Bills API
   app.get('/api/bills', authenticateToken, async (req: any, res) => {
     try {
-      const bills = await Bill.find({ userId: req.user.userId });
+      const bills = await (Bill as any).find({ userId: req.user.userId });
       res.json(bills.map(b => ({ ...b.toObject(), id: b._id })));
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch bills' });
@@ -293,7 +297,7 @@ async function startServer() {
   // Portfolio API
   app.get('/api/portfolio', authenticateToken, async (req: any, res) => {
     try {
-      const portfolio = await PortfolioAsset.find({ userId: req.user.userId });
+      const portfolio = await (PortfolioAsset as any).find({ userId: req.user.userId });
       res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch portfolio' });

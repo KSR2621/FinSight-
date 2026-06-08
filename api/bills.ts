@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import connectDB from '../lib/mongodb.ts';
-import { Bill } from '../models/Bill.ts';
+import connectDB from '../lib/mongodb';
+import { Bill } from '../models/Bill';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
@@ -12,6 +12,7 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  try {
   await connectDB();
 
   let user;
@@ -27,7 +28,7 @@ export default async function handler(req: any, res: any) {
   switch (method) {
     case 'GET':
       try {
-        const bills = await Bill.find({ userId: user.userId });
+        const bills = await (Bill as any).find({ userId: user.userId });
         res.json(bills.map(b => ({ ...b.toObject(), id: b._id })));
       } catch (error) {
         res.status(500).json({ error: 'Failed to fetch bills' });
@@ -36,5 +37,9 @@ export default async function handler(req: any, res: any) {
     default:
       res.setHeader('Allow', ['GET']);
       res.status(405).end(`Method ${method} Not Allowed`);
+  }
+  } catch (error: any) {
+    console.error('Bills API Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

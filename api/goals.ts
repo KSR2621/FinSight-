@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import connectDB from '../lib/mongodb.ts';
-import { Goal } from '../models/Goal.ts';
+import connectDB from '../lib/mongodb';
+import { Goal } from '../models/Goal';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
@@ -12,6 +12,7 @@ const authenticate = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  try {
   await connectDB();
 
   let user;
@@ -27,7 +28,7 @@ export default async function handler(req: any, res: any) {
   switch (method) {
     case 'GET':
       try {
-        const goals = await Goal.find({ userId: user.userId });
+        const goals = await (Goal as any).find({ userId: user.userId });
         res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
       } catch (error) {
         res.status(500).json({ error: 'Failed to fetch goals' });
@@ -44,7 +45,7 @@ export default async function handler(req: any, res: any) {
       break;
     case 'PUT':
       try {
-        const updatedGoal = await Goal.findOneAndUpdate(
+        const updatedGoal = await (Goal as any).findOneAndUpdate(
           { _id: id, userId: user.userId },
           req.body,
           { new: true }
@@ -60,7 +61,7 @@ export default async function handler(req: any, res: any) {
       break;
     case 'DELETE':
       try {
-        const result = await Goal.findOneAndDelete({ _id: id, userId: user.userId });
+        const result = await (Goal as any).findOneAndDelete({ _id: id, userId: user.userId });
         if (result) {
           res.status(204).send();
         } else {
@@ -73,5 +74,9 @@ export default async function handler(req: any, res: any) {
     default:
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
       res.status(405).end(`Method ${method} Not Allowed`);
+  }
+  } catch (error: any) {
+    console.error('Goals API Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

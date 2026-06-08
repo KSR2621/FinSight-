@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import connectDB from '../lib/mongodb.ts';
-import { User } from '../models/User.ts';
+import connectDB from '../lib/mongodb';
+import { User } from '../models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 
 export default async function handler(req: any, res: any) {
+  try {
   await connectDB();
 
   const { method } = req;
@@ -15,7 +16,7 @@ export default async function handler(req: any, res: any) {
     if (req.url.includes('/signup')) {
       try {
         const { email, password, displayName } = req.body;
-        const existingUser = await User.findOne({ email });
+        const existingUser = await (User as any).findOne({ email });
         if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -30,7 +31,7 @@ export default async function handler(req: any, res: any) {
     } else if (req.url.includes('/login')) {
       try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const user = await (User as any).findOne({ email });
         if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -47,5 +48,9 @@ export default async function handler(req: any, res: any) {
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${method} Not Allowed`);
+  }
+  } catch (error: any) {
+    console.error('Auth API Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }
