@@ -80,7 +80,10 @@ const News: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await fetch('/api/news');
-      if (!response.ok) throw new Error('Failed to fetch news');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to fetch news');
+      }
       const data = await response.json();
       setNews(data);
     } catch (err) {

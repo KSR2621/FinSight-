@@ -44,11 +44,21 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 body: JSON.stringify(body)
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || 'Authentication failed');
+                const errorText = await response.text();
+                let errorMessage = 'Authentication failed';
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.error || errorMessage;
+                } catch {
+                    if (errorText && errorText.length < 200) {
+                        errorMessage = errorText;
+                    }
+                }
+                throw new Error(errorMessage);
             }
+
+            const data = await response.json();
 
             localStorage.setItem('finsight_token', data.token);
             localStorage.setItem('finsight_user', JSON.stringify(data.user));

@@ -24,8 +24,17 @@ const callGroq = async (prompt: string, isJson = false) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Groq API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = `Groq API error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = `Groq API error: ${response.status} ${errorData.error?.message || response.statusText}`;
+      } catch {
+        if (errorText && errorText.length < 200) {
+          errorMessage = `Groq API error: ${response.status} ${errorText}`;
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
