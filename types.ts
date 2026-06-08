@@ -36,7 +36,7 @@ export interface Transaction {
   description: string;
   amount: number;
   type: TransactionType;
-  category: Category;
+  category: string;
   date: string; // ISO string format: YYYY-MM-DD
   notes?: string;
   receiptUrl?: string;

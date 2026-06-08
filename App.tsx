@@ -228,7 +228,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative my-auto"
+              className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl dark:bg-gray-800 md:rounded-[2.5rem] md:p-8"
             >
               <div className="flex items-center justify-between mb-4 md:mb-8">
                 <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-white">
@@ -244,6 +244,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
               <TransactionForm
                 onSubmit={editingTransaction ? handleEditTransaction : handleAddTransaction}
                 currency={currency}
+                userId={user.uid}
                 initialData={editingTransaction}
               />
             </motion.div>

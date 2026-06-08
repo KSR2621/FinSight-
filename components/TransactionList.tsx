@@ -17,16 +17,26 @@ const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [filter, setFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = useState(false);
   const downloadDropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    let filtered = transactions.filter(t => {
         const categoryMatch = filter === 'All' || t.category === filter || t.type === filter;
         const searchMatch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
         return categoryMatch && searchMatch;
     });
-  }, [transactions, filter, searchTerm]);
+    
+    // Sort by date (newest first) or amount (highest first)
+    if (sortBy === 'date') {
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else if (sortBy === 'amount') {
+      filtered.sort((a, b) => b.amount - a.amount);
+    }
+    
+    return filtered;
+  }, [transactions, filter, searchTerm, sortBy]);
 
   const allCategories = useMemo(() => {
     const cats = new Set(transactions.map(t => t.category));
@@ -124,52 +134,107 @@ const TransactionList: React.FC<TransactionListProps> = ({
   );
 
   return (
-    <div className="bg-card dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+    <div className="bg-card dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
+      <div className="flex flex-col gap-4 mb-4">
         <h3 className="text-lg font-semibold text-text-primary dark:text-white">Recent Transactions</h3>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col gap-3">
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search transactions..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-primary">
-            <option value="All">All</option>
-            <optgroup label="Types">
-                <option value={TransactionType.INCOME}>Income</option>
-                <option value={TransactionType.EXPENSE}>Expense</option>
-            </optgroup>
-            <optgroup label="Categories">
-                {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            </optgroup>
-          </select>
-          <div className="relative" ref={downloadDropdownRef}>
-            <button
-              onClick={() => setIsDownloadDropdownOpen(prev => !prev)}
-              className="flex items-center justify-center gap-1.5 px-3 h-10 bg-secondary text-white rounded-md hover:bg-green-700 transition-colors flex-shrink-0"
-              aria-haspopup="true"
-              aria-expanded={isDownloadDropdownOpen}
-              aria-label="Open download options"
-            >
-              <ArrowDownTrayIcon className="h-5 w-5" />
-              <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${isDownloadDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isDownloadDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-card dark:bg-gray-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5 p-1">
-                <ul className="space-y-1">
-                  {renderDropdownItem('30d', 'Last 30 Days')}
-                  {renderDropdownItem('90d', 'Last 90 Days')}
-                  {renderDropdownItem('1y', 'Last 1 Year')}
-                  {renderDropdownItem('3y', 'Last 3 Years')}
-                  {renderDropdownItem('5y', 'Last 5 Years')}
-                  <li className="border-t border-gray-200 dark:border-gray-600 my-1"></li>
-                  {renderDropdownItem('all', 'All Time')}
-                </ul>
+          
+          {/* Filter and Sort Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            {/* Filter Toggles */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setFilter('All')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filter === 'All'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter(TransactionType.INCOME)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filter === TransactionType.INCOME
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                    : 'bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Income
+              </button>
+              <button
+                onClick={() => setFilter(TransactionType.EXPENSE)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filter === TransactionType.EXPENSE
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                    : 'bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Expense
+              </button>
+            </div>
+            
+            {/* Sort and Download Controls */}
+            <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+              {/* Sort Toggles */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-text-secondary dark:text-gray-400">Sort:</span>
+                <button
+                  onClick={() => setSortBy('date')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    sortBy === 'date'
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                      : 'bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Date
+                </button>
+                <button
+                  onClick={() => setSortBy('amount')}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    sortBy === 'amount'
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                      : 'bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Amount
+                </button>
               </div>
-            )}
+              
+              {/* Download Button */}
+              <div className="relative ml-auto" ref={downloadDropdownRef}>
+                <button
+                  onClick={() => setIsDownloadDropdownOpen(prev => !prev)}
+                  className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-secondary text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-bold"
+                  aria-haspopup="true"
+                  aria-expanded={isDownloadDropdownOpen}
+                  aria-label="Open download options"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                </button>
+                {isDownloadDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-card dark:bg-gray-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5 p-1">
+                    <ul className="space-y-1">
+                      {renderDropdownItem('30d', 'Last 30 Days')}
+                      {renderDropdownItem('90d', 'Last 90 Days')}
+                      {renderDropdownItem('1y', 'Last 1 Year')}
+                      {renderDropdownItem('3y', 'Last 3 Years')}
+                      {renderDropdownItem('5y', 'Last 5 Years')}
+                      <li className="border-t border-gray-200 dark:border-gray-600 my-1"></li>
+                      {renderDropdownItem('all', 'All Time')}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

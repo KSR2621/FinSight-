@@ -54,17 +54,17 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 hidden md:block">
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[60] md:bottom-8 md:right-8">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="absolute bottom-20 right-0 w-[400px] h-[600px] bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden"
+            className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-3 flex h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] max-h-[600px] w-[calc(100vw-1.5rem)] max-w-[400px] flex-col overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800 md:absolute md:bottom-20 md:right-0 md:h-[min(600px,calc(100dvh-8rem))] md:w-[400px] md:rounded-[2.5rem]"
           >
             {/* Header */}
-            <div className="p-6 bg-indigo-600 text-white flex items-center justify-between">
+            <div className="flex items-center justify-between bg-indigo-600 p-4 text-white sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                   <SparklesIcon className="w-6 h-6" />
@@ -85,7 +85,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
             {/* Messages */}
             <div 
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"
+              className="no-scrollbar flex-1 space-y-4 overflow-y-auto p-4 sm:space-y-6 sm:p-6"
             >
               {messages.map((m, i) => (
                 <motion.div
@@ -118,7 +118,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
             </div>
 
             {/* Input */}
-            <div className="p-6 border-t border-gray-100 dark:border-gray-700">
+            <div className="border-t border-gray-100 p-3 dark:border-gray-700 sm:p-6">
               <div className="relative">
                 <input
                   type="text"
@@ -126,7 +126,7 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  className="w-full pl-6 pr-14 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                  className="w-full rounded-2xl border border-gray-100 bg-gray-50 py-3 pl-4 pr-14 outline-none transition-all focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white sm:py-4 sm:pl-6"
                 />
                 <button
                   onClick={handleSend}
@@ -144,9 +144,14 @@ const AiChatbot: React.FC<AiChatbotProps> = ({ transactions, currency, balance }
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-indigo-600 text-white rounded-[1.5rem] shadow-2xl shadow-indigo-500/40 flex items-center justify-center relative group"
+        className="group relative flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 md:h-16 md:w-16 md:rounded-[1.5rem]"
+        aria-label={isOpen ? 'Close FinSight AI chat' : 'Open FinSight AI chat'}
       >
-        <SparklesIcon className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+        {isOpen ? (
+          <XMarkIcon className="h-7 w-7" />
+        ) : (
+          <SparklesIcon className="h-7 w-7 transition-transform group-hover:rotate-12 md:h-8 md:w-8" />
+        )}
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-900" />
       </motion.button>
     </div>

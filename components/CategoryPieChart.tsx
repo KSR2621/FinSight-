@@ -1,7 +1,7 @@
 
 
 import React, { useMemo } from 'react';
-import { Transaction, Category, Currency, CURRENCY_SYMBOLS } from '../types';
+import { Transaction, Currency, CURRENCY_SYMBOLS } from '../types';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface CategoryPieChartProps {
@@ -16,7 +16,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ transactions, curre
     const categoryTotals = transactions.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;
-    }, {} as Record<Category, number>);
+    }, {} as Record<string, number>);
 
     return Object.entries(categoryTotals)
       .map(([name, value]) => ({ name, value }))
