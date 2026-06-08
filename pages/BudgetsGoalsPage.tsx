@@ -227,7 +227,23 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
         <div className="space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Savings Goals</h2>
-            <button className="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline">View All</button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  setEditingGoal(null);
+                  setIsGoalModalOpen(true);
+                }}
+                className="text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:underline"
+              >
+                Add Goal
+              </button>
+              <button
+                onClick={() => setIsManageMode(!isManageMode)}
+                className="text-text-secondary dark:text-gray-400 font-bold text-sm hover:underline"
+              >
+                {isManageMode ? 'Done' : 'Manage'}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -242,7 +258,11 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group"
+                    onClick={() => {
+                      setEditingGoal(g);
+                      setIsGoalModalOpen(true);
+                    }}
+                    className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-indigo-500/30 transition-all"
                   >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
                     

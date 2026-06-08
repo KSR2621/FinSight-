@@ -25,6 +25,7 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ user, onLogout }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -159,7 +160,7 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
         currency={currency}
         onCurrencyChange={setCurrency}
         onAddTransaction={openAddModal}
-        onLogout={() => setIsLogoutConfirmOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto pb-24 md:pb-8">
@@ -178,6 +179,65 @@ const App: React.FC<AppProps> = ({ user, onLogout }) => {
       <AiChatbot transactions={transactions} currency={currency} balance={balance} />
 
       <MobileNav />
+
+      {/* Profile Modal */}
+      <AnimatePresence>
+        {isProfileOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)}>
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+            >
+              <div className="p-8">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-indigo-500/20">
+                    {user.displayName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'JD'}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-text-primary dark:text-white truncate">{user.displayName || 'John Doe'}</h3>
+                    <p className="text-sm text-text-secondary dark:text-gray-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center justify-between px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl text-sm text-text-primary dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors font-bold group"
+                  >
+                    <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                    <div className={`w-10 h-6 rounded-full relative transition-colors ${isDarkMode ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                      <motion.div
+                        animate={{ x: isDarkMode ? 18 : 2 }}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                      />
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setIsLogoutConfirmOpen(true);
+                    }}
+                    className="w-full text-left px-6 py-4 text-sm text-rose-500 bg-rose-50 dark:bg-rose-900/10 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors font-bold"
+                  >
+                    Sign Out
+                  </button>
+
+                  <button
+                    onClick={() => setIsProfileOpen(false)}
+                    className="w-full px-6 py-4 text-sm text-text-secondary dark:text-gray-400 font-bold hover:underline"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Logout Confirmation Modal */}
       <AnimatePresence>
