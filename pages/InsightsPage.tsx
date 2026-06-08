@@ -58,26 +58,44 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
     }
   }, [transactions]);
 
-  const expenses = useMemo(() => transactions.filter(t => t.type === 'Expense'), [transactions]);
-  
-  const dailySpending = useMemo(() => {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
+  const { expenses, dailySpending, totalSpentLastMonth, savingsRate, expenseRatio } = useMemo(() => {
+    const expenses = transactions.filter(t => t.type === 'Expense');
+
+    const last30DaysDates = Array.from({ length: 30 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       return d.toISOString().split('T')[0];
     }).reverse();
 
-    return last30Days.map(date => {
+    const dailySpending = last30DaysDates.map(date => {
       const amount = expenses
         .filter(t => t.date === date)
         .reduce((sum, t) => sum + t.amount, 0);
       return { date, amount };
     });
-  }, [expenses]);
 
-  const totalSpentLastMonth = useMemo(() => 
-    dailySpending.reduce((sum, d) => sum + d.amount, 0), 
-  [dailySpending]);
+    const totalSpentLastMonth = dailySpending.reduce((sum, d) => sum + d.amount, 0);
+
+    const now = new Date();
+    const last30DaysTransactions = transactions.filter(t => {
+      const tDate = new Date(t.date);
+      const diffTime = Math.abs(now.getTime() - tDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 30;
+    });
+
+    const income30Days = last30DaysTransactions
+      .filter(t => t.type === 'Income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expenses30Days = last30DaysTransactions
+      .filter(t => t.type === 'Expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const savingsRate = income30Days === 0 ? 0 : Math.max(0, ((income30Days - expenses30Days) / income30Days) * 100);
+    const expenseRatio = income30Days === 0 ? (expenses30Days > 0 ? 100 : 0) : Math.min(100, (expenses30Days / income30Days) * 100);
+
+    return { expenses, dailySpending, totalSpentLastMonth, savingsRate, expenseRatio };
+  }, [transactions]);
 
   const chartData = useMemo(() => {
     const data = [...dailySpending];
@@ -283,12 +301,12 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-mono font-bold uppercase tracking-widest text-gray-500">
                   <span>Savings Rate</span>
-                  <span className="text-emerald-500">24%</span>
+                  <span className="text-emerald-500">{savingsRate.toFixed(0)}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: '24%' }}
+                    animate={{ width: `${savingsRate}%` }}
                     className="h-full bg-emerald-500"
                   />
                 </div>
@@ -296,12 +314,12 @@ const InsightsPage: React.FC<InsightsPageProps> = ({ transactions, currency }) =
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-mono font-bold uppercase tracking-widest text-gray-500">
                   <span>Expense Ratio</span>
-                  <span className="text-amber-500">68%</span>
+                  <span className="text-amber-500">{expenseRatio.toFixed(0)}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: '68%' }}
+                    animate={{ width: `${expenseRatio}%` }}
                     className="h-full bg-amber-500"
                   />
                 </div>

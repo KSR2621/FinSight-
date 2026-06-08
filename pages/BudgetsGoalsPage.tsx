@@ -19,8 +19,11 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
   
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isContributeModalOpen, setIsContributeModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [contributingGoal, setContributingGoal] = useState<Goal | null>(null);
+  const [contributionAmount, setContributionAmount] = useState<string>('');
   const [isManageMode, setIsManageMode] = useState(false);
 
   const currencySymbol = CURRENCY_SYMBOLS[currency];
@@ -93,6 +96,41 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
       } catch (error) {
         console.error('Error deleting goal:', error);
       }
+    }
+  };
+
+  const handleContribute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contributingGoal || !contributionAmount) return;
+
+    try {
+      const amount = parseFloat(contributionAmount);
+      if (isNaN(amount) || amount <= 0) return;
+
+      await api.updateGoal(user.uid, contributingGoal.id, {
+        currentAmount: contributingGoal.currentAmount + amount
+      });
+
+      // Also add a transaction for the contribution
+      await api.addTransaction(user.uid, {
+        description: `Goal Contribution: ${contributingGoal.name}`,
+        amount: amount,
+        type: 'Expense' as any, // Contributions to goals are like "expenses" for the cash balance
+        category: 'Investments', // Or a special category
+        date: new Date().toISOString().split('T')[0],
+        notes: `Savings contribution to ${contributingGoal.name}`
+      });
+
+      setIsContributeModalOpen(false);
+      setContributionAmount('');
+      setContributingGoal(null);
+      fetchData();
+      // We need to refresh transactions too if we want App.tsx to see it,
+      // but App.tsx owns transactions state. This is a bit tricky with current architecture.
+      // For now, it updates local storage and goal display.
+      window.location.reload(); // Simple way to refresh all state
+    } catch (error) {
+      console.error('Error contributing to goal:', error);
     }
   };
 
@@ -258,11 +296,7 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    onClick={() => {
-                      setEditingGoal(g);
-                      setIsGoalModalOpen(true);
-                    }}
-                    className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group cursor-pointer hover:border-indigo-500/30 transition-all"
+                    className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group hover:border-indigo-500/30 transition-all"
                   >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
                     
@@ -319,9 +353,20 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                           className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
                         />
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-500 uppercase tracking-widest">
-                        <TrendingUpIcon className="w-3 h-3" />
-                        <span>{currencySymbol}{remaining.toLocaleString()} to go</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-500 uppercase tracking-widest">
+                          <TrendingUpIcon className="w-3 h-3" />
+                          <span>{currencySymbol}{remaining > 0 ? `${remaining.toLocaleString()} to go` : 'Goal achieved!'}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setContributingGoal(g);
+                            setIsContributeModalOpen(true);
+                          }}
+                          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/10 active:scale-95"
+                        >
+                          Contribute
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -410,6 +455,59 @@ const BudgetsGoalsPage: React.FC<BudgetsGoalsPageProps> = ({ currency, transacti
                 currency={currency} 
                 initialData={editingGoal} 
               />
+            </motion.div>
+          </div>
+        )}
+
+        {isContributeModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsContributeModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-text-primary dark:text-white tracking-tight">Contribute</h2>
+                  <p className="text-xs font-mono text-text-secondary dark:text-gray-500 uppercase tracking-widest">to {contributingGoal?.name}</p>
+                </div>
+                <button
+                  onClick={() => setIsContributeModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleContribute} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-gray-500 uppercase tracking-widest ml-1">Amount ({currencySymbol})</label>
+                  <input
+                    autoFocus
+                    type="number"
+                    step="0.01"
+                    required
+                    value={contributionAmount}
+                    onChange={(e) => setContributionAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 text-text-primary dark:text-white font-bold"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Confirm Contribution
+                </button>
+              </form>
             </motion.div>
           </div>
         )}

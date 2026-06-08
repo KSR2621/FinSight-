@@ -68,20 +68,74 @@ export const api = {
     return { forecast };
   },
 
-  getHealthScore: async (): Promise<FinancialHealthScore> => {
+  getHealthScore: async (userId: string): Promise<FinancialHealthScore> => {
+    const transactions = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+    const budgets = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+    const portfolio = getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+
+    const now = new Date();
+    const last30Days = transactions.filter(t => {
+      const tDate = new Date(t.date);
+      return (now.getTime() - tDate.getTime()) / (1000 * 60 * 60 * 24) <= 30;
+    });
+
+    const income = last30Days.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
+    const expenses = last30Days.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+    const cashBalance = transactions.reduce((sum, t) => t.type === 'Income' ? sum + t.amount : sum - t.amount, 0);
+    const portfolioValue = portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
+    const netWorth = cashBalance + portfolioValue;
+
+    // 1. Savings Score (0-100) - Target 20% savings rate
+    const savingsRate = income > 0 ? Math.max(0, (income - expenses) / income) : 0;
+    const savingsScore = Math.min(100, Math.round((savingsRate / 0.2) * 100));
+
+    // 2. Spending Score (0-100) - Based on budget adherence
+    let spendingScore = 100;
+    if (budgets.length > 0) {
+      let totalBudgeted = 0;
+      let totalSpentInBudgetCategories = 0;
+
+      budgets.forEach(b => {
+        totalBudgeted += b.amount;
+        totalSpentInBudgetCategories += last30Days
+          .filter(t => t.category === b.category && t.type === 'Expense')
+          .reduce((sum, t) => sum + t.amount, 0);
+      });
+
+      if (totalBudgeted > 0) {
+        spendingScore = Math.max(0, Math.round(100 - (Math.max(0, totalSpentInBudgetCategories - totalBudgeted) / totalBudgeted * 100)));
+      }
+    } else if (expenses > 0 && income > 0) {
+        spendingScore = Math.min(100, Math.round(Math.max(0, 1 - (expenses / income)) * 100));
+    }
+
+    // 3. Investment Score (0-100) - Target 30% of Net Worth in investments
+    const investmentRatio = netWorth > 0 ? portfolioValue / netWorth : 0;
+    const investmentScore = Math.min(100, Math.round((investmentRatio / 0.3) * 100));
+
+    // 4. Emergency Fund Score (0-100) - Target 3 months of expenses
+    const monthlyExpenses = expenses || 1; // avoid division by zero
+    const runwayMonths = Math.max(0, cashBalance / monthlyExpenses);
+    const debtScore = Math.min(100, Math.round((runwayMonths / 3) * 100));
+
+    const totalScore = Math.round((savingsScore + spendingScore + investmentScore + debtScore) / 4);
+
+    const suggestions = [];
+    if (savingsScore < 50) suggestions.push("Try to increase your savings rate to at least 20% of your income.");
+    if (spendingScore < 70) suggestions.push("You're exceeding your budgets. Review your discretionary spending.");
+    if (investmentScore < 40) suggestions.push("Consider diversifying your wealth by increasing your investment portfolio.");
+    if (debtScore < 60) suggestions.push("Work on building an emergency fund that covers at least 3 months of expenses.");
+    if (suggestions.length === 0) suggestions.push("Your financial health is excellent! Keep maintaining these habits.");
+
     return {
-      score: 0,
+      score: totalScore,
       breakdown: {
-        savings: 0,
-        spending: 0,
-        investments: 0,
-        debt: 0
+        savings: savingsScore,
+        spending: spendingScore,
+        investments: investmentScore,
+        debt: debtScore
       },
-      suggestions: [
-        "Add transactions to see your financial health score.",
-        "Set up budgets to track your spending habits.",
-        "Add savings goals to plan for your future."
-      ]
+      suggestions
     };
   },
 
