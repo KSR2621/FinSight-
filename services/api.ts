@@ -44,15 +44,37 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   };
 
   const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 204) return null;
+
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       // Handle unauthorized
     }
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+
+    let errorMessage = 'API request failed';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+      // If not JSON, try to get text or just use default message
+      try {
+        const textError = await response.text();
+        if (textError && textError.length < 200) { // Don't show huge HTML pages
+          errorMessage = textError;
+        }
+      } catch (textErr) {
+        // Fallback to default message
+      }
+    }
+    throw new Error(errorMessage);
   }
-  if (response.status === 204) return null;
-  return response.json();
+
+  try {
+    return await response.json();
+  } catch (e) {
+    throw new Error('Failed to parse server response');
+  }
 };
 
 const API_BASE = '/api';
