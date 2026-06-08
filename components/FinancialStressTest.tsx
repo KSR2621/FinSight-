@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Transaction, Currency, TransactionType } from '../types';
+import { Transaction, Currency, TransactionType, PortfolioAsset } from '../types';
 
 interface StressTestProps {
   transactions: Transaction[];
   currency: Currency;
+  portfolio: PortfolioAsset[];
 }
 
-const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency }) => {
+const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency, portfolio }) => {
   const [rentHike, setRentHike] = useState(false);
   const [jobLoss, setJobLoss] = useState(false);
   const [emergencyExpense, setEmergencyExpense] = useState(false);
@@ -21,7 +22,9 @@ const FinancialStressTest: React.FC<StressTestProps> = ({ transactions, currency
 
     const monthlyIncome = last30Days.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
     const monthlyExpense = last30Days.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
-    const currentBalance = transactions.reduce((sum, t) => t.type === TransactionType.INCOME ? sum + t.amount : sum - t.amount, 0);
+    const cashBalance = transactions.reduce((sum, t) => t.type === TransactionType.INCOME ? sum + t.amount : sum - t.amount, 0);
+    const portfolioValue = portfolio.reduce((acc, asset) => acc + (asset.quantity * asset.currentPrice), 0);
+    const currentBalance = cashBalance + portfolioValue;
 
     // Apply Stressors
     let adjustedIncome = jobLoss ? 0 : monthlyIncome;

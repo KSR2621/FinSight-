@@ -29,7 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
       const [billsData, budgetsData, healthData, portfolioData] = await Promise.all([
         api.getBills(user.uid),
         api.getBudgets(user.uid),
-        api.getHealthScore(),
+        api.getHealthScore(user.uid),
         api.getPortfolio(user.uid)
       ]);
       setBills(billsData);
@@ -107,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, currency, user }) =
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <FinancialStressTest transactions={transactions} currency={currency} />
+          <FinancialStressTest transactions={transactions} currency={currency} portfolio={portfolio} />
         </motion.div>
 
         <motion.div 
