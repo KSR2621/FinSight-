@@ -7,50 +7,62 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this'
 
 export default async function handler(req: any, res: any) {
   try {
-  await connectDB();
+    console.log(`Auth API received ${req.method} request for ${req.url}`);
 
-  const { method } = req;
-  const path = req.url.split('/').pop();
+    await connectDB();
 
-  if (method === 'POST') {
-    if (req.url.includes('/signup')) {
-      try {
-        const { email, password, displayName } = req.body;
-        const existingUser = await (User as any).findOne({ email });
-        if (existingUser) return res.status(400).json({ error: 'User already exists' });
+    const { method } = req;
+    const url = req.url || '';
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword, displayName });
-        await user.save();
+    if (method === 'POST') {
+      if (url.includes('/signup')) {
+        try {
+          const { email, password, displayName } = req.body;
+          if (!email || !password) {
+             return res.status(400).json({ error: 'Email and password are required' });
+          }
 
-        const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-        res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to create user' });
-      }
-    } else if (req.url.includes('/login')) {
-      try {
-        const { email, password } = req.body;
-        const user = await (User as any).findOne({ email });
-        if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+          const existingUser = await (User as any).findOne({ email });
+          if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+          const hashedPassword = await bcrypt.hash(password, 10);
+          const user = new User({ email, password: hashedPassword, displayName });
+          await user.save();
 
-        const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-        res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to login' });
+          const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+          return res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+        } catch (error: any) {
+          console.error('Signup Error:', error);
+          return res.status(500).json({ error: 'Failed to create user: ' + (error.message || 'Unknown error') });
+        }
+      } else if (url.includes('/login')) {
+        try {
+          const { email, password } = req.body;
+          if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+          }
+
+          const user = await (User as any).findOne({ email });
+          if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+
+          const isPasswordValid = await bcrypt.compare(password, user.password);
+          if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
+
+          const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+          return res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
+        } catch (error: any) {
+          console.error('Login Error:', error);
+          return res.status(500).json({ error: 'Failed to login: ' + (error.message || 'Unknown error') });
+        }
+      } else {
+        return res.status(404).json({ error: 'Auth endpoint not found: ' + url });
       }
     } else {
-      res.status(404).json({ error: 'Not Found' });
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ error: `Method ${method} Not Allowed` });
     }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${method} Not Allowed`);
-  }
   } catch (error: any) {
-    console.error('Auth API Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    console.error('Auth API Global Error:', error);
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }
