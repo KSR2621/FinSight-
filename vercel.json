@@ -1,19 +1,20 @@
 {
-"functions": {
-"api/*.ts": {
-"runtime": "nodejs20.x",
-"memory": 512,
-"maxDuration": 30
-}
-},
-"rewrites": [
-{
-"source": "/api/(.*)",
-"destination": "/api/index.ts"
-},
-{
-"source": "/(.*)",
-"destination": "/index.html"
-}
-]
+  "cleanUrls": true,
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
