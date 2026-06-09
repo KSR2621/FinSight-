@@ -32,18 +32,20 @@ export default async function handler(req: any, res: any) {
       case 'GET':
         try {
           const transactions = await (Transaction as any).find({ userId: user.userId }).sort({ date: -1 });
-          return res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id })));
-        } catch (error) {
-          return res.status(500).json({ error: 'Failed to fetch transactions' });
+          return res.json(transactions.map((t: any) => ({ ...t.toObject(), id: t._id.toString() })));
+        } catch (error: any) {
+          console.error('Fetch transactions error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to fetch transactions' });
         }
       case 'POST':
         try {
           if (!req.body) return res.status(400).json({ error: 'Request body is required' });
           const newTransaction = new Transaction({ ...req.body, userId: user.userId });
           await newTransaction.save();
-          return res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
-        } catch (error) {
-          return res.status(500).json({ error: 'Failed to create transaction' });
+          return res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id.toString() });
+        } catch (error: any) {
+          console.error('Create transaction error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to create transaction' });
         }
       case 'PUT':
         try {
@@ -55,12 +57,13 @@ export default async function handler(req: any, res: any) {
             { new: true }
           );
           if (updatedTransaction) {
-            return res.json({ ...(updatedTransaction as any).toObject(), id: (updatedTransaction as any)._id });
+            return res.json({ ...(updatedTransaction as any).toObject(), id: (updatedTransaction as any)._id.toString() });
           } else {
             return res.status(404).json({ error: 'Transaction not found' });
           }
-        } catch (error) {
-          return res.status(500).json({ error: 'Failed to update transaction' });
+        } catch (error: any) {
+          console.error('Update transaction error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to update transaction' });
         }
       case 'DELETE':
         try {
@@ -71,8 +74,9 @@ export default async function handler(req: any, res: any) {
           } else {
             return res.status(404).json({ error: 'Transaction not found' });
           }
-        } catch (error) {
-          return res.status(500).json({ error: 'Failed to delete transaction' });
+        } catch (error: any) {
+          console.error('Delete transaction error:', error);
+          return res.status(500).json({ error: error.message || 'Failed to delete transaction' });
         }
       default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);

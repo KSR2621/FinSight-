@@ -29,9 +29,10 @@ export default async function handler(req: any, res: any) {
     case 'GET':
       try {
         const goals = await (Goal as any).find({ userId: user.userId });
-        res.json(goals.map(g => ({ ...g.toObject(), id: g._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch goals' });
+        res.json(goals.map(g => ({ ...g.toObject(), id: g._id.toString() })));
+      } catch (error: any) {
+        console.error('Fetch goals error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch goals' });
       }
       break;
     case 'POST':
@@ -39,9 +40,10 @@ export default async function handler(req: any, res: any) {
         if (!req.body) return res.status(400).json({ error: 'Request body is required' });
         const newGoal = new Goal({ ...req.body, userId: user.userId });
         await newGoal.save();
-        res.status(201).json({ ...newGoal.toObject(), id: newGoal._id });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to create goal' });
+        res.status(201).json({ ...newGoal.toObject(), id: newGoal._id.toString() });
+      } catch (error: any) {
+        console.error('Create goal error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create goal' });
       }
       break;
     case 'PUT':
@@ -54,12 +56,13 @@ export default async function handler(req: any, res: any) {
           { new: true }
         );
         if (updatedGoal) {
-          res.json({ ...updatedGoal.toObject(), id: updatedGoal._id });
+          res.json({ ...updatedGoal.toObject(), id: updatedGoal._id.toString() });
         } else {
           res.status(404).json({ error: 'Goal not found' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to update goal' });
+      } catch (error: any) {
+        console.error('Update goal error:', error);
+        res.status(500).json({ error: error.message || 'Failed to update goal' });
       }
       break;
     case 'DELETE':
@@ -70,8 +73,9 @@ export default async function handler(req: any, res: any) {
         } else {
           res.status(404).json({ error: 'Goal not found' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to delete goal' });
+      } catch (error: any) {
+        console.error('Delete goal error:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete goal' });
       }
       break;
     default:

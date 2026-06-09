@@ -29,9 +29,10 @@ export default async function handler(req: any, res: any) {
     case 'GET':
       try {
         const budgets = await (Budget as any).find({ userId: user.userId });
-        res.json(budgets.map(b => ({ ...b.toObject(), id: b._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch budgets' });
+        res.json(budgets.map(b => ({ ...b.toObject(), id: b._id.toString() })));
+      } catch (error: any) {
+        console.error('Fetch budgets error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch budgets' });
       }
       break;
     case 'POST':
@@ -39,9 +40,10 @@ export default async function handler(req: any, res: any) {
         if (!req.body) return res.status(400).json({ error: 'Request body is required' });
         const newBudget = new Budget({ ...req.body, userId: user.userId });
         await newBudget.save();
-        res.status(201).json({ ...newBudget.toObject(), id: newBudget._id });
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to create budget' });
+        res.status(201).json({ ...newBudget.toObject(), id: newBudget._id.toString() });
+      } catch (error: any) {
+        console.error('Create budget error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create budget' });
       }
       break;
     case 'PUT':
@@ -54,12 +56,13 @@ export default async function handler(req: any, res: any) {
           { new: true }
         );
         if (updatedBudget) {
-          res.json({ ...updatedBudget.toObject(), id: updatedBudget._id });
+          res.json({ ...updatedBudget.toObject(), id: updatedBudget._id.toString() });
         } else {
           res.status(404).json({ error: 'Budget not found' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to update budget' });
+      } catch (error: any) {
+        console.error('Update budget error:', error);
+        res.status(500).json({ error: error.message || 'Failed to update budget' });
       }
       break;
     case 'DELETE':
@@ -70,8 +73,9 @@ export default async function handler(req: any, res: any) {
         } else {
           res.status(404).json({ error: 'Budget not found' });
         }
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to delete budget' });
+      } catch (error: any) {
+        console.error('Delete budget error:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete budget' });
       }
       break;
     default:

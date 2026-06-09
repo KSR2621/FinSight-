@@ -29,9 +29,10 @@ export default async function handler(req: any, res: any) {
     case 'GET':
       try {
         const bills = await (Bill as any).find({ userId: user.userId });
-        res.json(bills.map(b => ({ ...b.toObject(), id: b._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch bills' });
+        res.json(bills.map(b => ({ ...b.toObject(), id: b._id.toString() })));
+      } catch (error: any) {
+        console.error('Fetch bills error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch bills' });
       }
       break;
     default:

@@ -29,9 +29,10 @@ export default async function handler(req: any, res: any) {
     case 'GET':
       try {
         const portfolio = await (PortfolioAsset as any).find({ userId: user.userId });
-        res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id })));
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch portfolio' });
+        res.json(portfolio.map(p => ({ ...p.toObject(), id: p._id.toString() })));
+      } catch (error: any) {
+        console.error('Fetch portfolio error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch portfolio' });
       }
       break;
     default:
