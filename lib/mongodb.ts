@@ -26,8 +26,8 @@ async function connectDB() {
     const opts = {
       bufferCommands: false,
       tlsAllowInvalidCertificates: true, // Workaround for some restricted environments
-      serverSelectionTimeoutMS: 10000, // Increased timeout to 10 seconds
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000, // Reduced to 5 seconds to fail faster than Vercel timeout
+      connectTimeoutMS: 5000,
     };
 
     console.log('Connecting to MongoDB...');

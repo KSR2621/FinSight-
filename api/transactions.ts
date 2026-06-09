@@ -38,6 +38,7 @@ export default async function handler(req: any, res: any) {
         }
       case 'POST':
         try {
+          if (!req.body) return res.status(400).json({ error: 'Request body is required' });
           const newTransaction = new Transaction({ ...req.body, userId: user.userId });
           await newTransaction.save();
           return res.status(201).json({ ...newTransaction.toObject(), id: newTransaction._id });
@@ -47,6 +48,7 @@ export default async function handler(req: any, res: any) {
       case 'PUT':
         try {
           if (!id) return res.status(400).json({ error: 'ID is required' });
+          if (!req.body) return res.status(400).json({ error: 'Request body is required' });
           const updatedTransaction = await (Transaction as any).findOneAndUpdate(
             { _id: id, userId: user.userId },
             req.body,

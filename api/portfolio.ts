@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const { method, query } = req;
-  const id = query.path ? query.path[0] : null;
+  const id = Array.isArray(query.path) ? query.path[0] : query.path;
 
   switch (method) {
     case 'GET':

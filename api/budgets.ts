@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const { method, query } = req;
-  const id = query.path ? query.path[0] : null;
+  const id = Array.isArray(query.path) ? query.path[0] : query.path;
 
   switch (method) {
     case 'GET':
@@ -36,6 +36,7 @@ export default async function handler(req: any, res: any) {
       break;
     case 'POST':
       try {
+        if (!req.body) return res.status(400).json({ error: 'Request body is required' });
         const newBudget = new Budget({ ...req.body, userId: user.userId });
         await newBudget.save();
         res.status(201).json({ ...newBudget.toObject(), id: newBudget._id });
@@ -45,6 +46,8 @@ export default async function handler(req: any, res: any) {
       break;
     case 'PUT':
       try {
+        if (!id) return res.status(400).json({ error: 'ID is required' });
+        if (!req.body) return res.status(400).json({ error: 'Request body is required' });
         const updatedBudget = await (Budget as any).findOneAndUpdate(
           { _id: id, userId: user.userId },
           req.body,

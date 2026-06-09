@@ -16,8 +16,9 @@ export default async function handler(
 
     await connectDB();
 
-    const { method } = req;
+    const { method, query } = req;
     const url = req.url || '';
+    const path = Array.isArray(query.path) ? query.path[0] : query.path;
 
     if (method !== 'POST') {
       res.setHeader('Allow', ['POST']);
@@ -26,8 +27,12 @@ export default async function handler(
         .json({ error: `Method ${method} Not Allowed` });
     }
 
+    if (!req.body) {
+      return res.status(400).json({ error: 'Request body is required' });
+    }
+
     // SIGNUP
-    if (url.includes('/signup')) {
+    if (url.includes('/signup') || path === 'signup') {
       const { email, password, displayName } = req.body;
 
       if (!email || !password) {
@@ -54,7 +59,7 @@ export default async function handler(
 
       const token = jwt.sign(
         {
-          userId: user._id,
+          userId: user._id.toString(),
           email: user.email,
         },
         JWT_SECRET
@@ -63,7 +68,7 @@ export default async function handler(
       return res.status(201).json({
         token,
         user: {
-          uid: user._id,
+          uid: user._id.toString(),
           email: user.email,
           displayName: user.displayName,
         },
@@ -71,7 +76,7 @@ export default async function handler(
     }
 
     // LOGIN
-    if (url.includes('/login')) {
+    if (url.includes('/login') || path === 'login') {
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -101,7 +106,7 @@ export default async function handler(
 
       const token = jwt.sign(
         {
-          userId: user._id,
+          userId: user._id.toString(),
           email: user.email,
         },
         JWT_SECRET
@@ -110,7 +115,7 @@ export default async function handler(
       return res.json({
         token,
         user: {
-          uid: user._id,
+          uid: user._id.toString(),
           email: user.email,
           displayName: user.displayName,
         },
