@@ -25,9 +25,10 @@ async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      tlsAllowInvalidCertificates: true, // Workaround for some restricted environments
-      serverSelectionTimeoutMS: 10000, // Increased timeout to 10 seconds
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 30000,
+      maxPoolSize: 1, // Keep pool small for serverless
     };
 
     console.log('Connecting to MongoDB...');
@@ -35,7 +36,7 @@ async function connectDB() {
       console.log('MongoDB connected successfully');
       return mongoose;
     }).catch(err => {
-      console.error('MongoDB connection error:', err);
+      console.error('MongoDB connection error:', err.message);
       cached.promise = null; // Reset promise so we can try again
       throw err;
     });
@@ -43,9 +44,9 @@ async function connectDB() {
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (e: any) {
     cached.promise = null;
-    console.error('Failed to resolve MongoDB connection promise:', e);
+    console.error('Failed to resolve MongoDB connection promise:', e.message);
     throw e;
   }
 

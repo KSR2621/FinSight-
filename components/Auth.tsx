@@ -44,11 +44,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                 body: JSON.stringify(body)
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || 'Authentication failed');
+                // Try to parse JSON error, fall back to text, then generic message
+                let errorMessage = 'Authentication failed. Please try again.';
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    try {
+                        const errData = await response.json();
+                        errorMessage = errData.error || errorMessage;
+                    } catch { /* ignore */ }
+                } else if (response.status === 500) {
+                    errorMessage = 'Server error. Please check your connection or try again later.';
+                }
+                throw new Error(errorMessage);
             }
+
+            const data = await response.json();
 
             localStorage.setItem('finsight_token', data.token);
             localStorage.setItem('finsight_user', JSON.stringify(data.user));
