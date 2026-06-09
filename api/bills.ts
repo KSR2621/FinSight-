@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
       break;
     default:
       res.setHeader('Allow', ['GET']);
-      res.status(405).end(`Method ${method} Not Allowed`);
+      res.status(405).json({ error: `Method ${method} Not Allowed` });
   }
   } catch (error: any) {
     console.error('Bills API Error:', error);

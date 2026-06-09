@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const existingUser = await User.findOne({ email });
+      const existingUser = await (User as any).findOne({ email });
       if (existingUser) {
         return res.status(400).json({ error: 'User already exists' });
       }
@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const user = await User.findOne({ email });
+      const user = await (User as any).findOne({ email });
       if (!user) {
         return res.status(400).json({ error: 'Invalid credentials' });
       }

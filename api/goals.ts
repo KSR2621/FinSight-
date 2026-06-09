@@ -73,7 +73,7 @@ export default async function handler(req: any, res: any) {
       break;
     default:
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-      res.status(405).end(`Method ${method} Not Allowed`);
+      res.status(405).json({ error: `Method ${method} Not Allowed` });
   }
   } catch (error: any) {
     console.error('Goals API Error:', error);
