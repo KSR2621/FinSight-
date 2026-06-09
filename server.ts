@@ -35,11 +35,17 @@ app.use(express.json());
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     try {
+      if (!process.env.MONGODB_URI) {
+        throw new Error('MONGODB_URI is not defined in environment variables');
+      }
       await connectDB();
       next();
-    } catch (error) {
-      console.error('Database connection failed:', error);
-      res.status(500).json({ error: 'Database connection failed' });
+    } catch (error: any) {
+      console.error('Database connection failed:', error.message);
+      res.status(500).json({
+        error: 'Database connection failed',
+        details: error.message
+      });
     }
   } else {
     next();
@@ -106,6 +112,10 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const existingUser = await (User as any).findOne({ email });
     if (existingUser) return res.status(400).json({ error: 'User already exists' });
 
@@ -113,28 +123,50 @@ app.post('/api/auth/signup', async (req, res) => {
     const user = new User({ email, password: hashedPassword, displayName });
     await user.save();
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-    return res.status(201).json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: 'Failed to create user' });
+    const userIdStr = user._id.toString();
+    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+
+    return res.status(201).json({
+      token,
+      user: {
+        uid: userIdStr,
+        email: user.email,
+        displayName: user.displayName
+      }
+    });
+  } catch (error: any) {
+    console.error('Signup error:', error.message);
+    res.status(500).json({ error: 'Failed to create user', details: error.message });
   }
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const user = await (User as any).findOne({ email });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(400).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
-    return res.json({ token, user: { uid: user._id, email: user.email, displayName: user.displayName } });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    const userIdStr = user._id.toString();
+    const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
+
+    return res.json({
+      token,
+      user: {
+        uid: userIdStr,
+        email: user.email,
+        displayName: user.displayName
+      }
+    });
+  } catch (error: any) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ error: 'Failed to login', details: error.message });
   }
 });
 
