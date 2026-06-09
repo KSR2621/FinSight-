@@ -44,10 +44,11 @@ export default async function handler(req: any, res: any) {
       const user = new User({ email, password: hashedPassword, displayName });
       await user.save();
 
-      const token = jwt.sign({ userId: user._id.toString(), email: user.email }, JWT_SECRET);
+      const userIdStr = user._id.toString();
+      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
       return res.status(201).json({
         token,
-        user: { uid: user._id.toString(), email: user.email, displayName: user.displayName }
+        user: { uid: userIdStr, email: user.email, displayName: user.displayName }
       });
     }
 
@@ -69,10 +70,11 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Invalid credentials' });
       }
 
-      const token = jwt.sign({ userId: user._id.toString(), email: user.email }, JWT_SECRET);
+      const userIdStr = user._id.toString();
+      const token = jwt.sign({ userId: userIdStr, email: user.email }, JWT_SECRET);
       return res.json({
         token,
-        user: { uid: user._id.toString(), email: user.email, displayName: user.displayName }
+        user: { uid: userIdStr, email: user.email, displayName: user.displayName }
       });
     }
 
