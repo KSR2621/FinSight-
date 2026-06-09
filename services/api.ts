@@ -82,6 +82,9 @@ const API_BASE = '/api';
 export const api = {
   // Transactions
   getTransactions: async (userId: string): Promise<Transaction[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/transactions`);
     } catch (e) {
@@ -91,6 +94,12 @@ export const api = {
   },
 
   addTransaction: async (userId: string, t: Omit<Transaction, 'id'>): Promise<Transaction> => {
+    if (userId === 'guest_user') {
+      const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, [...current, newTransaction]);
+      return newTransaction;
+    }
     try {
       const newTransaction = await fetchWithAuth(`${API_BASE}/transactions`, {
         method: 'POST',
@@ -106,6 +115,12 @@ export const api = {
   },
 
   updateTransaction: async (userId: string, id: string, t: Partial<Transaction>): Promise<Transaction> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      const updated = current.map(item => item.id === id ? { ...item, ...t } : item);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, updated);
+      return updated.find(item => item.id === id) as Transaction;
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
         method: 'PUT',
@@ -120,6 +135,11 @@ export const api = {
   },
 
   deleteTransaction: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Transaction>(userId, STORAGE_KEYS.TRANSACTIONS);
+      setLocal(userId, STORAGE_KEYS.TRANSACTIONS, current.filter(item => item.id !== id));
+      return;
+    }
     try {
       await fetchWithAuth(`${API_BASE}/transactions/${id}`, {
         method: 'DELETE',
@@ -222,6 +242,9 @@ export const api = {
 
   // Budgets
   getBudgets: async (userId: string): Promise<Budget[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/budgets`);
     } catch (e) {
@@ -230,6 +253,12 @@ export const api = {
   },
 
   addBudget: async (userId: string, b: Omit<Budget, 'id'>): Promise<Budget> => {
+    if (userId === 'guest_user') {
+      const newBudget = { ...b, id: Math.random().toString(36).substr(2, 9) } as Budget;
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, [...current, newBudget]);
+      return newBudget;
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/budgets`, {
         method: 'POST',
@@ -244,6 +273,12 @@ export const api = {
   },
 
   updateBudget: async (userId: string, id: string, b: Partial<Budget>): Promise<Budget> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      const updated = current.map(item => item.id === id ? { ...item, ...b } : item);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, updated);
+      return updated.find(item => item.id === id) as Budget;
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
         method: 'PUT',
@@ -258,6 +293,11 @@ export const api = {
   },
 
   deleteBudget: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Budget>(userId, STORAGE_KEYS.BUDGETS);
+      setLocal(userId, STORAGE_KEYS.BUDGETS, current.filter(item => item.id !== id));
+      return;
+    }
     try {
       await fetchWithAuth(`${API_BASE}/budgets/${id}`, {
         method: 'DELETE',
@@ -270,6 +310,9 @@ export const api = {
 
   // Goals
   getGoals: async (userId: string): Promise<Goal[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/goals`);
     } catch (e) {
@@ -278,6 +321,12 @@ export const api = {
   },
 
   addGoal: async (userId: string, g: Omit<Goal, 'id'>): Promise<Goal> => {
+    if (userId === 'guest_user') {
+      const newGoal = { ...g, id: Math.random().toString(36).substr(2, 9) } as Goal;
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      setLocal(userId, STORAGE_KEYS.GOALS, [...current, newGoal]);
+      return newGoal;
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/goals`, {
         method: 'POST',
@@ -292,6 +341,12 @@ export const api = {
   },
 
   updateGoal: async (userId: string, id: string, g: Partial<Goal>): Promise<Goal> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      const updated = current.map(item => item.id === id ? { ...item, ...g } : item);
+      setLocal(userId, STORAGE_KEYS.GOALS, updated);
+      return updated.find(item => item.id === id) as Goal;
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/goals/${id}`, {
         method: 'PUT',
@@ -306,6 +361,11 @@ export const api = {
   },
 
   deleteGoal: async (userId: string, id: string): Promise<void> => {
+    if (userId === 'guest_user') {
+      const current = getLocal<Goal>(userId, STORAGE_KEYS.GOALS);
+      setLocal(userId, STORAGE_KEYS.GOALS, current.filter(item => item.id !== id));
+      return;
+    }
     try {
       await fetchWithAuth(`${API_BASE}/goals/${id}`, {
         method: 'DELETE',
@@ -318,6 +378,9 @@ export const api = {
 
   // Bills
   getBills: async (userId: string): Promise<Bill[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<Bill>(userId, STORAGE_KEYS.BILLS);
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/bills`);
     } catch (e) {
@@ -327,6 +390,9 @@ export const api = {
 
   // Portfolio
   getPortfolio: async (userId: string): Promise<PortfolioAsset[]> => {
+    if (userId === 'guest_user') {
+      return getLocal<PortfolioAsset>(userId, STORAGE_KEYS.PORTFOLIO);
+    }
     try {
       return await fetchWithAuth(`${API_BASE}/portfolio`);
     } catch (e) {

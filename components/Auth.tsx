@@ -134,13 +134,26 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onBack }) => {
                                 className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
                             />
                         </div>
-                        <div className="pt-2">
+                        <div className="pt-2 flex flex-col gap-3">
                              <button
                                 type="submit"
                                 disabled={isLoading}
                                 className="w-full h-12 flex justify-center items-center px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 disabled:bg-indigo-400 transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                             >
                                 {isLoading ? <RefreshIcon className="animate-spin h-5 w-5" /> : (isLogin ? 'Login' : 'Sign Up')}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const guestUser = { uid: 'guest_user', email: 'guest@example.com', displayName: 'Guest User' };
+                                    localStorage.setItem('finsight_user', JSON.stringify(guestUser));
+                                    onAuthSuccess(guestUser);
+                                }}
+                                disabled={isLoading}
+                                className="w-full h-12 flex justify-center items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-text-primary dark:text-white text-sm font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95"
+                            >
+                                Skip for now (Offline Mode)
                             </button>
                         </div>
                     </form>

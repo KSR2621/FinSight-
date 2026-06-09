@@ -12,6 +12,18 @@ export default async function handler(req: any, res: any) {
   try {
     console.log(`Auth API: ${req.method} ${req.url}`);
 
+    if (!process.env.MONGODB_URI) {
+      console.error('CRITICAL: MONGODB_URI is missing');
+      return res.status(500).json({
+        error: 'Database configuration missing',
+        details: 'MONGODB_URI environment variable is not set.'
+      });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.warn('JWT_SECRET is missing, using fallback (not recommended for production)');
+    }
+
     await connectDB();
 
     const { method } = req;
@@ -86,7 +98,8 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({
       error: error.message?.includes('connect') || error.message?.includes('mongo')
         ? 'Database connection failed. Please try again.'
-        : (error.message || 'Internal Server Error')
+        : 'Internal server error',
+      details: error.message
     });
   }
 }

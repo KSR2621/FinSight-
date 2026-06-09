@@ -36,7 +36,11 @@ app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     try {
       if (!process.env.MONGODB_URI) {
-        throw new Error('MONGODB_URI is not defined in environment variables');
+        console.error('CRITICAL: MONGODB_URI is missing');
+        return res.status(500).json({
+          error: 'Database configuration missing',
+          details: 'MONGODB_URI environment variable is not set.'
+        });
       }
       await connectDB();
       next();
