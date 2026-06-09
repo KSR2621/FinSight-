@@ -1,21 +1,15 @@
 {
-  "functions": {
-    "api/auth.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/transactions.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/budgets.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/goals.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/bills.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/portfolio.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 },
-    "api/news.ts": { "runtime": "nodejs20.x", "memory": 512, "maxDuration": 30 }
-  },
-  "rewrites": [
-    { "source": "/api/news", "destination": "/api/news.ts" },
-    { "source": "/api/auth/:path*", "destination": "/api/auth.ts" },
-    { "source": "/api/transactions/:path*", "destination": "/api/transactions.ts" },
-    { "source": "/api/budgets/:path*", "destination": "/api/budgets.ts" },
-    { "source": "/api/goals/:path*", "destination": "/api/goals.ts" },
-    { "source": "/api/bills/:path*", "destination": "/api/bills.ts" },
-    { "source": "/api/portfolio/:path*", "destination": "/api/portfolio.ts" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+"functions": {
+"api/*.ts": {
+"runtime": "nodejs20.x",
+"memory": 512,
+"maxDuration": 30
+}
+},
+"rewrites": [
+{
+"source": "/(.*)",
+"destination": "/index.html"
+}
+]
 }
