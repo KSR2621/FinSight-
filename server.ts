@@ -478,13 +478,15 @@ async function setupApp() {
       console.error('Vite dev server failed to start:', err);
     }
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-
+    // In production, the Express app only handles API requests if deployed to Vercel
+    // Static files are served by Vercel's built-in static hosting
     if (!process.env.VERCEL) {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on port ${PORT}`);
       });
